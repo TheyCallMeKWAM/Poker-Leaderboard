@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Poker Night Leaderboard</title>
     <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <header>
@@ -13,6 +14,7 @@
     <main>
         <!-- Leaderboard Section -->
         <section id="leaderboard">
+            <h2>Leaderboard</h2>
             <table>
                 <thead>
                     <tr>
@@ -26,6 +28,12 @@
                     <!-- Dynamic content will go here -->
                 </tbody>
             </table>
+        </section>
+
+        <!-- All Players Graph Section -->
+        <section id="all-players-graph-section">
+            <h2>Performance of All Players</h2>
+            <canvas id="all-players-graph" width="800" height="400"></canvas>
         </section>
     </main>
     <script>
@@ -43,7 +51,7 @@
                 }
                 player.total += result;
                 player.games += 1;
-                player.breakdown.push({ date: date, result: result });
+                player.breakdown.push({ gamesPlayed: player.games, total: player.total });
             });
         }
 
@@ -90,12 +98,112 @@
                 const player = players.find(p => p.name === playerName);
                 const dropdownContent = document.getElementById(`dropdown-${playerName}`);
                 dropdownContent.innerHTML = player.breakdown
-                    .map(entry => `<p>${entry.date}: ${entry.result >= 0 ? `$${entry.result}` : `-$${Math.abs(entry.result)}`}</p>`)
+                    .map(entry => `<p>Game ${entry.gamesPlayed}: ${entry.total >= 0 ? `$${entry.total}` : `-$${Math.abs(entry.total)}`}</p>`)
                     .join("");
+
+                // Plot player graph
+                plotPlayerGraph(playerName);
+
                 dropdownRow.style.display = "table-row";
             } else {
                 dropdownRow.style.display = "none";
             }
+        }
+
+        // Function to plot a player's performance in the dropdown
+        function plotPlayerGraph(playerName) {
+            const dropdownContent = document.getElementById(`dropdown-${playerName}`);
+            const canvasId = `graph-${playerName}`;
+
+            // Create a canvas for the graph if it doesn't exist
+            if (!document.getElementById(canvasId)) {
+                const canvas = document.createElement('canvas');
+                canvas.id = canvasId;
+                canvas.width = 800;
+                canvas.height = 400;
+                dropdownContent.appendChild(canvas);
+            }
+
+            const player = players.find(p => p.name === playerName);
+            const labels = [...new Set(games.map(game => game.date))]; // Unique dates
+            const data = player.breakdown.map(entry => entry.total);
+
+            // Create the chart
+            new Chart(document.getElementById(canvasId), {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: `${playerName}'s Performance`,
+                        data: data,
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: false, // Ensure responsiveness does not override fixed size
+                    maintainAspectRatio: true,
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Games Played'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Total Won/Lost'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Function to plot all players' performances in a single graph
+        function plotAllPlayersGraph() {
+            const labels = [...new Set(games.map(game => game.date))]; // Unique dates
+            const datasets = players.map(player => ({
+                label: player.name,
+                data: player.breakdown.map(entry => entry.total),
+                borderColor: getRandomColor(),
+                fill: false,
+                tension: 0.4
+            }));
+
+            // Create the chart
+            new Chart(document.getElementById('all-players-graph'), {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: false, // Disable responsiveness
+                    maintainAspectRatio: true, // Ensure fixed size
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Games Played'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Total Won/Lost'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Helper function to generate random colors
+        function getRandomColor() {
+            return `rgba(${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, 1)`;
         }
 
         // Example usage
@@ -104,12 +212,14 @@
             { name: "Michael", result: 0 },
             { name: "Warren", result: 0 },
             { name: "Kathy", result: 0 },
-            { name: "Daniel S", result: 0 },
+            { name: "Daniel", result: 0 },
             { name: "Aiden", result: 0 },
             { name: "Evan", result: 0 },
         ]);
 
+
         populateLeaderboard();
+        plotAllPlayersGraph();
     </script>
 </body>
 </html>
