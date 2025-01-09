@@ -80,6 +80,20 @@ table tr:hover {
     padding-bottom: 0.3rem;
 }
 
+canvas {
+    max-width: 100%;
+    height: auto;
+}
+
+#all-players-graph-section {
+    margin-top: 2rem;
+    padding: 1rem;
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
 /* Responsive Design */
 @media screen and (max-width: 768px) {
     main {
@@ -92,5 +106,13 @@ table tr:hover {
 
     h1, h2 {
         font-size: 1.5rem;
+    }
+    canvas {
+        max-width: 100%;
+        height: auto;
+    }
+
+    #all-players-graph-section {
+        padding: 0.5rem;
     }
 }

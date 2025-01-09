@@ -130,36 +130,36 @@
 
             // Create the chart
             new Chart(document.getElementById(canvasId), {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: `${playerName}'s Performance`,
-                        data: data,
-                        borderColor: 'rgba(75, 192, 192, 1)',
-                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                        tension: 0.4
-                    }]
-                },
-                options: {
-                    responsive: false, // Ensure responsiveness does not override fixed size
-                    maintainAspectRatio: true,
-                    scales: {
-                        x: {
-                            title: {
-                                display: true,
-                                text: 'Games Played'
-                            }
-                        },
-                        y: {
-                            title: {
-                                display: true,
-                                text: 'Total Won/Lost'
-                            }
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: `${playerName}'s Performance`,
+                    data: data,
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true, // Ensures it scales with the container
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Games Played'
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Total Won/Lost'
                         }
                     }
                 }
-            });
+            }
+        });
         }
 
         // Function to plot all players' performances in a single graph
@@ -181,8 +181,8 @@
                     datasets: datasets
                 },
                 options: {
-                    responsive: false, // Disable responsiveness
-                    maintainAspectRatio: true, // Ensure fixed size
+                    responsive: true, // Ensures it adjusts to screen size
+                    maintainAspectRatio: true, // Keeps the aspect ratio consistent
                     scales: {
                         x: {
                             title: {
