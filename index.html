@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Poker Night Leaderboard</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>Poker Night Leaderboard</h1>
+    </header>
+    <main>
+        <!-- Leaderboard Section -->
+        <section id="leaderboard">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Player</th>
+                        <th>Total Won/Lost</th>
+                        <th>Games Played</th>
+                    </tr>
+                </thead>
+                <tbody id="leaderboard-body">
+                    <!-- Dynamic content will go here -->
+                </tbody>
+            </table>
+        </section>
+    </main>
+    <script>
+        const players = [];
+        const games = [];
+
+        // Function to add game data
+        function addGame(date, results) {
+            results.forEach(({ name, result }) => {
+                games.push({ date, name, result });
+                let player = players.find(p => p.name === name);
+                if (!player) {
+                    player = { name: name, total: 0, games: 0, breakdown: [] };
+                    players.push(player);
+                }
+                player.total += result;
+                player.games += 1;
+                player.breakdown.push({ date: date, result: result });
+            });
+        }
+
+        // Function to populate leaderboard
+        function populateLeaderboard() {
+            const leaderboardBody = document.getElementById("leaderboard-body");
+
+            // Clear existing content
+            leaderboardBody.innerHTML = "";
+
+            // Sort players by total winnings (descending)
+            const sortedPlayers = [...players].sort((a, b) => b.total - a.total);
+
+            // Populate leaderboard rows
+            sortedPlayers.forEach((player, index) => {
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td class="player-name" data-name="${player.name}">${player.name}</td>
+                    <td>${player.total >= 0 ? `$${player.total}` : `-$${Math.abs(player.total)}`}</td>
+                    <td>${player.games}</td>
+                `;
+                leaderboardBody.appendChild(row);
+
+                // Add dropdown container row
+                const dropdownRow = document.createElement("tr");
+                dropdownRow.classList.add("dropdown-row");
+                dropdownRow.style.display = "none"; // Hidden by default
+                dropdownRow.innerHTML = `<td colspan="4" id="dropdown-${player.name}" class="dropdown-content"></td>`;
+                leaderboardBody.appendChild(dropdownRow);
+
+                // Add event listener for dropdown toggle
+                const playerNameCell = row.querySelector(".player-name");
+                playerNameCell.addEventListener("click", () => {
+                    toggleDropdown(player.name);
+                });
+            });
+        }
+
+        // Function to toggle dropdown visibility
+        function toggleDropdown(playerName) {
+            const dropdownRow = document.querySelector(`#dropdown-${playerName}`).parentElement;
+            if (dropdownRow.style.display === "none" || !dropdownRow.style.display) {
+                const player = players.find(p => p.name === playerName);
+                const dropdownContent = document.getElementById(`dropdown-${playerName}`);
+                dropdownContent.innerHTML = player.breakdown
+                    .map(entry => `<p>${entry.date}: ${entry.result >= 0 ? `$${entry.result}` : `-$${Math.abs(entry.result)}`}</p>`)
+                    .join("");
+                dropdownRow.style.display = "table-row";
+            } else {
+                dropdownRow.style.display = "none";
+            }
+        }
+
+        // Example usage
+        addGame("Jan 9th", [
+            { name: "William", result: 0 },
+            { name: "Michael", result: 0 },
+            { name: "Warren", result: 0 },
+            { name: "Kathy", result: 0 },
+            { name: "Daniel S", result: 0 },
+            { name: "Aiden", result: 0 },
+            { name: "Evan", result: 0 },
+        ]);
+
+        populateLeaderboard();
+    </script>
+</body>
+</html>

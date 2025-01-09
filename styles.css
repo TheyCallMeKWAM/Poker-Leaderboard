@@ -1,0 +1,96 @@
+/* General Styles */
+body {
+    font-family: 'Roboto', Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f4f4f9;
+    color: #333;
+}
+
+header {
+    background-color: #4CAF50;
+    color: white;
+    padding: 1.5rem 0;
+    text-align: center;
+    font-size: 2rem;
+    font-weight: bold;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+main {
+    margin: 2rem auto;
+    max-width: 900px;
+    padding: 1rem 2rem;
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+}
+
+h1{
+    text-align: center;
+    color: #ffffff;
+    margin-bottom: 1rem;
+}
+
+/* Table Styles */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 2rem;
+    font-size: 1rem;
+}
+
+table th, table td {
+    padding: 1rem;
+    text-align: center;
+    border: 1px solid #ddd;
+}
+
+table th {
+    background-color: #4CAF50;
+    color: white;
+    text-transform: uppercase;
+    font-weight: bold;
+}
+
+table tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+table tr:hover {
+    background-color: #f1f1f1;
+    transition: background-color 0.3s;
+}
+
+/* Dropdown Content */
+.dropdown-row {
+    background-color: #f0f8ff;
+}
+
+.dropdown-content {
+    text-align: left;
+    font-size: 0.9rem;
+    color: #555;
+    padding: 1rem;
+}
+
+.dropdown-content p {
+    margin: 0.5rem 0;
+    border-bottom: 1px solid #e0e0e0;
+    padding-bottom: 0.3rem;
+}
+
+/* Responsive Design */
+@media screen and (max-width: 768px) {
+    main {
+        padding: 1rem;
+    }
+
+    table th, table td {
+        padding: 0.8rem;
+    }
+
+    h1, h2 {
+        font-size: 1.5rem;
+    }
+}
