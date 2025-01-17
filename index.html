@@ -133,12 +133,14 @@
     const uniqueDates = [...new Set(games.map(game => game.date))]; // Unique dates
     let cumulativeTotal = 0;
 
+    // Use null for dates where the player didn't participate
     const data = uniqueDates.map(date => {
         const game = games.find(g => g.date === date && g.name === playerName);
         if (game) {
             cumulativeTotal += game.result;
+            return cumulativeTotal; // Use cumulative total
         }
-        return cumulativeTotal; // Use cumulative total for the graph
+        return null; // No point for this date
     });
 
     // Create the chart
@@ -156,7 +158,7 @@
         },
         options: {
             responsive: true,
-            maintainAspectRatio: true, // Ensures it scales with the container
+            maintainAspectRatio: true,
             scales: {
                 x: {
                     title: {
@@ -179,12 +181,15 @@ function plotAllPlayersGraph() {
     const uniqueDates = [...new Set(games.map(game => game.date))]; // Unique dates
     const datasets = players.map(player => {
         let cumulativeTotal = 0;
+
+        // Use null for dates where the player didn't participate
         const data = uniqueDates.map(date => {
             const game = games.find(g => g.date === date && g.name === player.name);
             if (game) {
                 cumulativeTotal += game.result;
+                return cumulativeTotal; // Use cumulative total
             }
-            return cumulativeTotal; // Use cumulative total for the graph
+            return null; // No point for this date
         });
 
         return {
@@ -204,8 +209,8 @@ function plotAllPlayersGraph() {
             datasets: datasets
         },
         options: {
-            responsive: true, // Ensures it adjusts to screen size
-            maintainAspectRatio: true, // Keeps the aspect ratio consistent
+            responsive: true,
+            maintainAspectRatio: true,
             scales: {
                 x: {
                     title: {
