@@ -124,23 +124,20 @@
     if (!document.getElementById(canvasId)) {
         const canvas = document.createElement('canvas');
         canvas.id = canvasId;
-        canvas.width = 800;
-        canvas.height = 400;
         dropdownContent.appendChild(canvas);
     }
 
     const player = players.find(p => p.name === playerName);
-    const uniqueDates = [...new Set(games.map(game => game.date))]; // Unique dates
+    const uniqueDates = [...new Set(games.map(game => game.date))];
     let cumulativeTotal = 0;
 
-    // Use null for dates where the player didn't participate
     const data = uniqueDates.map(date => {
         const game = games.find(g => g.date === date && g.name === playerName);
         if (game) {
             cumulativeTotal += game.result;
-            return cumulativeTotal; // Use cumulative total
+            return cumulativeTotal;
         }
-        return null; // No point for this date
+        return null; // Use null for missing data
     });
 
     // Create the chart
@@ -149,7 +146,7 @@
         data: {
             labels: uniqueDates,
             datasets: [{
-                label: `${playerName}'s Performance`,
+                label: `${playerName}`,
                 data: data,
                 borderColor: 'rgba(75, 192, 192, 1)',
                 backgroundColor: 'rgba(75, 192, 192, 0.2)',
@@ -159,6 +156,14 @@
         options: {
             responsive: true,
             maintainAspectRatio: true,
+            layout: {
+                padding: {
+                    top: 20,
+                    right: 60,
+                    bottom: 40, // Extra space for the x-axis labels
+                    left: 20
+                }
+            },
             scales: {
                 x: {
                     title: {
@@ -172,7 +177,7 @@
                         text: 'Cumulative Total Won/Lost'
                     }
                 }
-            }
+            },
         }
     });
 }
@@ -180,26 +185,50 @@
 function plotAllPlayersGraph() {
     const uniqueDates = [...new Set(games.map(game => game.date))]; // Unique dates
     const datasets = players.map(player => {
-        let cumulativeTotal = 0;
+    let cumulativeTotal = 0;
 
-        // Use null for dates where the player didn't participate
-        const data = uniqueDates.map(date => {
-            const game = games.find(g => g.date === date && g.name === player.name);
-            if (game) {
-                cumulativeTotal += game.result;
-                return cumulativeTotal; // Use cumulative total
-            }
-            return null; // No point for this date
-        });
-
-        return {
-            label: player.name,
-            data: data,
-            borderColor: getRandomColor(),
-            fill: false,
-            tension: 0.4
-        };
+    const data = uniqueDates.map(date => {
+        const game = games.find(g => g.date === date && g.name === player.name);
+        if (game) {
+            cumulativeTotal += game.result;
+            return cumulativeTotal; // Use cumulative total
+        }
+        return null; // No point for this date
     });
+
+    return {
+        label: player.name,
+        data: data,
+        borderColor: getRandomColor(), // Use the updated function
+        fill: false,
+        tension: 0.4
+    };
+});
+
+    // Custom plugin for drawing player names
+    const labelPlugin = {
+        id: 'lineLabels',
+        afterDatasetsDraw(chart) {
+            const { ctx, data } = chart;
+            ctx.save();
+            data.datasets.forEach((dataset, index) => {
+                const meta = chart.getDatasetMeta(index);
+                if (!meta.hidden) {
+                    const lastPoint = meta.data[meta.data.length - 1];
+                    if (lastPoint) {
+                        ctx.font = '12px Arial';
+                        ctx.fillStyle = dataset.borderColor;
+                        ctx.textAlign = 'left';
+                        ctx.fillText(dataset.label, lastPoint.x + 5, lastPoint.y - 5);
+                    }
+                }
+            });
+            ctx.restore();
+        }
+    };
+
+    // Register the plugin
+    Chart.register(labelPlugin);
 
     // Create the chart
     new Chart(document.getElementById('all-players-graph'), {
@@ -211,6 +240,14 @@ function plotAllPlayersGraph() {
         options: {
             responsive: true,
             maintainAspectRatio: true,
+            layout: {
+                padding: {
+                    top: 20,
+                    right: 60, // Add space on the right for labels
+                    bottom: 20,
+                    left: 40 // Add space on the left for labels if needed
+                }
+            },
             scales: {
                 x: {
                     title: {
@@ -224,14 +261,22 @@ function plotAllPlayersGraph() {
                         text: 'Cumulative Total Won/Lost'
                     }
                 }
+            },
+            plugins: {
+                lineLabels: true // Enable the custom label plugin
             }
         }
     });
 }
 
-        // Helper function to generate random colors
         function getRandomColor() {
-            return `rgba(${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, 1)`;
+            // Generate RGB a in the mid-range (80–200)
+            const r = Math.floor(Math.random() * (200 - 50) + 80);
+            const g = Math.floor(Math.random() * (200 - 50) + 80);
+            const b = Math.floor(Math.random() * (200 - 50) + 80);
+
+            // Return the color in rgba format with 0.8 opacity
+            return `rgba(${r}, ${g}, ${b})`;
         }
 
         // Example usage
