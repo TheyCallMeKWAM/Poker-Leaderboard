@@ -120,7 +120,6 @@
     const dropdownContent = document.getElementById(`dropdown-${playerName}`);
     const canvasId = `graph-${playerName}`;
 
-    // Create a canvas for the graph if it doesn't exist
     if (!document.getElementById(canvasId)) {
         const canvas = document.createElement('canvas');
         canvas.id = canvasId;
@@ -130,17 +129,18 @@
     const player = players.find(p => p.name === playerName);
     const uniqueDates = [...new Set(games.map(game => game.date))];
     let cumulativeTotal = 0;
+    let lastKnownTotal = null;
 
     const data = uniqueDates.map(date => {
         const game = games.find(g => g.date === date && g.name === playerName);
         if (game) {
             cumulativeTotal += game.result;
-            return cumulativeTotal;
+            lastKnownTotal = cumulativeTotal; // Store last known value
+            return cumulativeTotal; // Use cumulative total
         }
-        return null; // Use null for missing data
+        return lastKnownTotal !== null ? null : null; // Ensure missing weeks are skipped visually
     });
 
-    // Create the chart
     new Chart(document.getElementById(canvasId), {
         type: 'line',
         data: {
@@ -150,7 +150,8 @@
                 data: data,
                 borderColor: 'rgba(75, 192, 192, 1)',
                 backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                tension: 0.4
+                tension: 0.4,
+                spanGaps: true // Allows line to connect through missing weeks
             }]
         },
         options: {
@@ -160,7 +161,7 @@
                 padding: {
                     top: 20,
                     right: 60,
-                    bottom: 40, // Extra space for the x-axis labels
+                    bottom: 40,
                     left: 20
                 }
             },
@@ -177,60 +178,39 @@
                         text: 'Cumulative Total Won/Lost'
                     }
                 }
-            },
+            }
         }
     });
 }
 
-function plotAllPlayersGraph() {
-    const uniqueDates = [...new Set(games.map(game => game.date))]; // Unique dates
-    const datasets = players.map(player => {
-    let cumulativeTotal = 0;
 
-    const data = uniqueDates.map(date => {
-        const game = games.find(g => g.date === date && g.name === player.name);
-        if (game) {
-            cumulativeTotal += game.result;
-            return cumulativeTotal; // Use cumulative total
-        }
-        return null; // No point for this date
+
+function plotAllPlayersGraph() {
+    const uniqueDates = [...new Set(games.map(game => game.date))];
+    const datasets = players.map(player => {
+        let cumulativeTotal = 0;
+        let lastKnownTotal = null;
+
+        const data = uniqueDates.map(date => {
+            const game = games.find(g => g.date === date && g.name === player.name);
+            if (game) {
+                cumulativeTotal += game.result;
+                lastKnownTotal = cumulativeTotal; // Store last known value
+                return cumulativeTotal; // Use cumulative total
+            }
+            return lastKnownTotal !== null ? null : null; // Use null for missing points while keeping the line connected
+        });
+
+        return {
+            label: player.name,
+            data: data,
+            borderColor: getRandomColor(),
+            fill: false,
+            tension: 0.4,
+            spanGaps: true // Allows the line to stay connected through skipped weeks
+        };
     });
 
-    return {
-        label: player.name,
-        data: data,
-        borderColor: getRandomColor(), // Use the updated function
-        fill: false,
-        tension: 0.4
-    };
-});
-
-    // Custom plugin for drawing player names
-    const labelPlugin = {
-        id: 'lineLabels',
-        afterDatasetsDraw(chart) {
-            const { ctx, data } = chart;
-            ctx.save();
-            data.datasets.forEach((dataset, index) => {
-                const meta = chart.getDatasetMeta(index);
-                if (!meta.hidden) {
-                    const lastPoint = meta.data[meta.data.length - 1];
-                    if (lastPoint) {
-                        ctx.font = '12px Arial';
-                        ctx.fillStyle = dataset.borderColor;
-                        ctx.textAlign = 'left';
-                        ctx.fillText(dataset.label, lastPoint.x + 5, lastPoint.y - 5);
-                    }
-                }
-            });
-            ctx.restore();
-        }
-    };
-
-    // Register the plugin
-    Chart.register(labelPlugin);
-
-    // Create the chart
     new Chart(document.getElementById('all-players-graph'), {
         type: 'line',
         data: {
@@ -243,9 +223,9 @@ function plotAllPlayersGraph() {
             layout: {
                 padding: {
                     top: 20,
-                    right: 60, // Add space on the right for labels
+                    right: 60,
                     bottom: 20,
-                    left: 40 // Add space on the left for labels if needed
+                    left: 40
                 }
             },
             scales: {
@@ -261,13 +241,12 @@ function plotAllPlayersGraph() {
                         text: 'Cumulative Total Won/Lost'
                     }
                 }
-            },
-            plugins: {
-                lineLabels: true // Enable the custom label plugin
             }
         }
     });
 }
+
+
 
         function getRandomColor() {
             // Generate RGB a in the mid-range (80–200)
@@ -309,7 +288,22 @@ function plotAllPlayersGraph() {
             { name: "Evan", result: -160 },
             { name: "Dany", result: -36 },
         ]);
-
+        addGame("Jan 30th", [
+            { name: "William", result: 25 },
+            { name: "Michael", result: -10 },
+            { name: "Warren", result: 5 },
+            { name: "Kathy", result: 0 },
+            { name: "Daniel", result: -20 },
+            { name: "Aiden", result: 0 },
+        ]);
+        addGame("Feb 6th", [
+            { name: "William", result: 26.60 },
+            { name: "Michael", result: 47.80 },
+            { name: "Warren", result: 5 },
+            { name: "Kathy", result: 46 },
+            { name: "Daniel", result: -10 },
+            { name: "Evan", result: -116 },
+        ]);
 
         populateLeaderboard();
         plotAllPlayersGraph();
