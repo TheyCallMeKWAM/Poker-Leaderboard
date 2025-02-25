@@ -72,7 +72,7 @@
             row.innerHTML = `
                 <td>${index + 1}</td>
                 <td>${player.name}</td>
-                <td>${player.total >= 0 ? `$${player.total}` : `-$${Math.abs(player.total)}`}</td>
+                <td>${player.total >= 0 ? `$${player.total.toFixed(2)}` : `-$${Math.abs(player.total).toFixed(2)}`}</td>
                 <td>${player.games}</td>
             `;
 
@@ -303,6 +303,24 @@ function plotAllPlayersGraph() {
             { name: "Kathy", result: 46 },
             { name: "Daniel", result: -10 },
             { name: "Evan", result: -116 },
+        ]);
+        addGame("Feb 13th", [
+            { name: "William", result: 0 },
+            { name: "Michael", result: 0 },
+            { name: "Warren", result: 10 },
+            { name: "Kathy", result: 0 },
+            { name: "Daniel", result: -10 },
+        ]);
+        addGame("Feb 20th", [
+            { name: "William", result: -152 },
+            { name: "Michael", result: 40 },
+            { name: "Warren", result: 35 },
+            { name: "Kathy", result: 116 },
+            { name: "Daniel", result: 16 },
+            { name: "Evan", result: 0 },
+            { name: "Aiden", result: 20 },
+            { name: "Matthew", result: -20 },
+            { name: "Jeremy", result: -60 },
         ]);
 
         populateLeaderboard();
