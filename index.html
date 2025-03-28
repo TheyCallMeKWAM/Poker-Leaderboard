@@ -33,7 +33,9 @@
         <!-- All Players Graph Section -->
         <section id="all-players-graph-section">
             <h2>Performance of All Players</h2>
-            <canvas id="all-players-graph" width="800" height="400"></canvas>
+            <div class="graph-wrapper">
+                <canvas id="all-players-graph"></canvas>
+              </div>
         </section>
     </main>
     <script>
@@ -339,6 +341,23 @@ function plotAllPlayersGraph() {
             { name: "Daniel", result: -15 },
             { name: "Evan", result: 35 },
             { name: "Aiden", result: -15 },
+        ]);
+        addGame("March 20th", [
+            { name: "William", result: -42.10 },
+            { name: "Michael", result: 0 },
+            { name: "Warren", result: 13.10 },
+            { name: "Kathy", result: 46 },
+            { name: "Daniel", result: -15 },
+            { name: "Evan", result: 41 },
+        ]);
+        addGame("March 27th", [
+            { name: "William", result: -10 },
+            { name: "Michael", result: 55 },
+            { name: "Warren", result: 12 },
+            { name: "Kathy", result: 80 },
+            { name: "Daniel", result: 20 },
+            { name: "Evan", result: -130 },
+            { name: "Aiden", result: -25 },
         ]);
 
         populateLeaderboard();
