@@ -76,31 +76,22 @@ table tr:nth-child(even) {
     padding-bottom: 0.3rem;
 }
 
-canvas {
-    max-width: 100%;
-    height: auto;
-}
-
-.graph-wrapper {
+.graph-container {
     position: relative;
     width: 100%;
-    min-height: 300px;
-    height: 50vw; /* Scales height based on screen width */
-    max-height: 500px;
+    height: 400px;
 }
 
 #all-players-graph {
     width: 100% !important;
-    height: 100% !important;
+    height: auto !important;
+    max-height: 500px;
 }
 
-#all-players-graph-section {
-    margin-top: 2rem;
-    padding: 1rem;
-    background-color: #fff;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+@media screen and (max-width: 768px) {
+    #all-players-graph {
+        max-height: 1000px;
+    }
 }
 
 .player-row {
@@ -118,7 +109,7 @@ canvas {
     }
 
     .graph-wrapper {
-        height: 70vw;
+        height: 120vw;
     }
 
     table th, table td {
