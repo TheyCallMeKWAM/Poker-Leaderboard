@@ -5,740 +5,112 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Poker Night Leaderboard</title>
     <link rel="stylesheet" href="styles.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
+    <script src="data.js" defer></script>
+    <script src="app.js" defer></script>
 </head>
 <body>
-    <header>
-        <h1>Poker Night Leaderboard</h1>
+    <header class="site-header">
+        <div class="header-inner">
+            <p class="eyebrow">Poker Night</p>
+            <h1>Poker Night Leaderboard</h1>
+            <p class="subtitle">Sampson Poker Night</p>
+        </div>
     </header>
     <main>
-        <!-- Leaderboard Section -->
-        <section id="leaderboard">
-            <h2>Leaderboard</h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Rank</th>
-                        <th>Player</th>
-                        <th>Total Won/Lost</th>
-                        <th>Games Played</th>
-                    </tr>
-                </thead>
-                <tbody id="leaderboard-body">
-                    <!-- Dynamic content will go here -->
-                </tbody>
-            </table>
+        <section id="leaderboard" class="table-card">
+            <div class="section-title-row">
+                <div>
+                    <h2 class="section-title">Leaderboard</h2>
+                    <p class="section-subtitle">Showing <span id="year-label"></span></p>
+                </div>
+                <div class="year-switch" id="year-buttons">
+                    <!-- Buttons injected by app.js -->
+                </div>
+            </div>
+            <div class="overview-grid compact">
+                <div class="stat-card">
+                    <p class="stat-label">Sessions</p>
+                    <p class="stat-value" id="stat-sessions">0</p>
+                </div>
+                <div class="stat-card">
+                    <p class="stat-label">Players</p>
+                    <p class="stat-value" id="stat-players">0</p>
+                </div>
+            </div>
+            <div id="empty-state" class="empty-state" hidden>
+                <p>No games logged yet. Add results to start the leaderboard.</p>
+            </div>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Player</th>
+                            <th>Total Won/Lost</th>
+                            <th>Games Played</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leaderboard-body">
+                        <!-- Dynamic content will go here -->
+                    </tbody>
+                </table>
+            </div>
         </section>
 
-        <!-- All Players Graph Section -->
-        <section id="all-players-graph-section">
-            <h2>Performance of All Players</h2>
-            <canvas id="all-players-graph"></canvas>
+        <section id="fun-stats" class="table-card">
+            <div class="section-title-row">
+                <div>
+                    <h2 class="section-title">Fun Stats</h2>
+                    <p class="section-subtitle">Highlights for this season.</p>
+                </div>
+            </div>
+            <div class="stats-list" id="fun-stats-body">
+                <!-- Filled by app.js -->
+            </div>
+        </section>
+
+        <section id="date-results" class="table-card">
+            <div class="section-title-row">
+                <div>
+                    <h2 class="section-title">Session Results</h2>
+                    <p class="section-subtitle">Pick a date to see everyone’s results.</p>
+                </div>
+                <div class="date-picker">
+                    <label class="sr-only" for="date-select">Select date</label>
+                    <select id="date-select"></select>
+                </div>
+            </div>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Player</th>
+                            <th>Result</th>
+                        </tr>
+                    </thead>
+                    <tbody id="date-results-body">
+                        <!-- Filled by app.js -->
+                    </tbody>
+                </table>
+            </div>
+            <div id="date-empty" class="empty-state" hidden>
+                <p>No games logged for this year yet.</p>
+            </div>
+        </section>
+
+        <section id="all-players-graph-section" class="chart-card">
+            <div class="chart-header">
+                <h2 class="section-title">Performance of All Players</h2>
+                <p>Running totals across every session.</p>
+            </div>
+            <div class="chart-shell chart-shell-wide">
+                <canvas id="all-players-graph"></canvas>
+            </div>
         </section>
     </main>
-    <script>
-        const players = [];
-        const games = [];
-
-        // Function to add game data
-        function addGame(date, results) {
-            results.forEach(({ name, result }) => {
-                games.push({ date, name, result });
-                let player = players.find(p => p.name === name);
-                if (!player) {
-                    player = { name: name, total: 0, games: 0, breakdown: [] };
-                    players.push(player);
-                }
-                player.total += result;
-                player.games += 1;
-                player.breakdown.push({ gamesPlayed: player.games, total: player.total });
-            });
-        }
-
-        // Function to populate leaderboard
-        function populateLeaderboard() {
-        const leaderboardBody = document.getElementById("leaderboard-body");
-
-        // Clear existing content
-        leaderboardBody.innerHTML = "";
-
-        // Sort players by total winnings (descending)
-        const sortedPlayers = [...players].sort((a, b) => b.total - a.total);
-
-        // Populate leaderboard rows
-        sortedPlayers.forEach((player, index) => {
-            const row = document.createElement("tr");
-            row.classList.add("player-row"); // Optional for styling
-            row.innerHTML = `
-                <td>${index + 1}</td>
-                <td>${player.name}</td>
-                <td>${player.total >= 0 ? `$${player.total.toFixed(2)}` : `-$${Math.abs(player.total).toFixed(2)}`}</td>
-                <td>${player.games}</td>
-            `;
-
-            const dropdownRow = document.createElement("tr");
-            dropdownRow.classList.add("dropdown-row");
-            dropdownRow.style.display = "none";
-            dropdownRow.innerHTML = `<td colspan="4" id="dropdown-${player.name}" class="dropdown-content"></td>`;
-
-            // Add event listener for the entire row
-            row.addEventListener("click", () => toggleDropdown(player.name));
-
-            leaderboardBody.appendChild(row);
-            leaderboardBody.appendChild(dropdownRow);
-        });
-    }
-
-        function toggleDropdown(playerName) {
-        const dropdownRow = document.querySelector(`#dropdown-${playerName}`).parentElement;
-        if (dropdownRow.style.display === "none" || !dropdownRow.style.display) {
-            const player = players.find(p => p.name === playerName);
-            const dropdownContent = document.getElementById(`dropdown-${playerName}`);
-
-            // Generate content with dates
-            const uniqueDates = [...new Set(games.map(game => game.date))]; // Unique dates
-            const gameDetails = uniqueDates.map(date => {
-                const game = games.find(g => g.date === date && g.name === playerName);
-                if (game) {
-                    return `<p>${date}: ${game.result >= 0 ? `$${game.result}` : `-$${Math.abs(game.result)}`}</p>`;
-                }
-                return null; // Skip if the player didn't play on this date
-            }).filter(entry => entry !== null).join("");
-
-            dropdownContent.innerHTML = gameDetails;
-
-            // Plot player graph
-            plotPlayerGraph(playerName);
-
-            dropdownRow.style.display = "table-row";
-        } else {
-            dropdownRow.style.display = "none";
-        }
-    }
-
-    function plotPlayerGraph(playerName) {
-    const dropdownContent = document.getElementById(`dropdown-${playerName}`);
-    const canvasId = `graph-${playerName}`;
-
-    if (!document.getElementById(canvasId)) {
-        const canvas = document.createElement('canvas');
-        canvas.id = canvasId;
-        dropdownContent.appendChild(canvas);
-    }
-
-    const player = players.find(p => p.name === playerName);
-    const uniqueDates = [...new Set(games.map(game => game.date))];
-    let cumulativeTotal = 0;
-    let lastKnownTotal = null;
-
-    const data = uniqueDates.map(date => {
-        const game = games.find(g => g.date === date && g.name === playerName);
-        if (game) {
-            cumulativeTotal += game.result;
-            lastKnownTotal = cumulativeTotal; // Store last known value
-            return cumulativeTotal; // Use cumulative total
-        }
-        return lastKnownTotal !== null ? null : null; // Ensure missing weeks are skipped visually
-    });
-
-    new Chart(document.getElementById(canvasId), {
-        type: 'line',
-        data: {
-            labels: uniqueDates,
-            datasets: [{
-                label: `${playerName}`,
-                data: data,
-                borderColor: 'rgba(75, 192, 192, 1)',
-                backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                tension: 0.4,
-                spanGaps: true // Allows line to connect through missing weeks
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            layout: {
-                padding: {
-                    top: 20,
-                    right: 60,
-                    bottom: 40,
-                    left: 20
-                }
-            },
-            scales: {
-                x: {
-                    title: {
-                        display: true,
-                        text: 'Dates'
-                    }
-                },
-                y: {
-                    title: {
-                        display: true,
-                        text: 'Cumulative Total Won/Lost'
-                    }
-                }
-            }
-        }
-    });
-}
-
-
-
-function plotAllPlayersGraph() {
-    const uniqueDates = [...new Set(games.map(game => game.date))];
-    const datasets = players.map(player => {
-        let cumulativeTotal = 0;
-        let lastKnownTotal = null;
-
-        const data = uniqueDates.map(date => {
-            const game = games.find(g => g.date === date && g.name === player.name);
-            if (game) {
-                cumulativeTotal += game.result;
-                lastKnownTotal = cumulativeTotal; // Store last known value
-                return cumulativeTotal; // Use cumulative total
-            }
-            return lastKnownTotal !== null ? null : null; // Use null for missing points while keeping the line connected
-        });
-
-        return {
-            label: player.name,
-            data: data,
-            borderColor: getRandomColor(),
-            fill: false,
-            tension: 0.4,
-            spanGaps: true // Allows the line to stay connected through skipped weeks
-        };
-    });
-
-    new Chart(document.getElementById('all-players-graph'), {
-        type: 'line',
-        data: {
-            labels: uniqueDates,
-            datasets: datasets
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            layout: {
-                padding: {
-                    top: 20,
-                    right: 60,
-                    bottom: 20,
-                    left: 40
-                }
-            },
-            scales: {
-                x: {
-                    title: {
-                        display: true,
-                        text: 'Dates'
-                    }
-                },
-                y: {
-                    title: {
-                        display: true,
-                        text: 'Cumulative Total Won/Lost'
-                    }
-                }
-            }
-        }
-    });
-}
-
-
-
-        function getRandomColor() {
-            // Generate RGB a in the mid-range (80–200)
-            const r = Math.floor(Math.random() * (200 - 50) + 80);
-            const g = Math.floor(Math.random() * (200 - 50) + 80);
-            const b = Math.floor(Math.random() * (200 - 50) + 80);
-
-            // Return the color in rgba format with 0.8 opacity
-            return `rgba(${r}, ${g}, ${b})`;
-        }
-
-        // Example usage
-        addGame("Jan 9th", [
-            { name: "William", result: 50 },
-            { name: "Michael", result: -81.30 },
-            { name: "Warren", result: 0 },
-            { name: "Kathy", result: 5 },
-            { name: "Daniel", result: 0 },
-            { name: "Aiden", result: 16.30 },
-            { name: "Evan", result: 10 },
-        ]);
-        addGame("Jan 16th", [
-            { name: "William", result: 10 },
-            { name: "Michael", result: 5 },
-            { name: "Warren", result: 0 },
-            { name: "Kathy", result: -20 },
-            { name: "Daniel", result: -29 },
-            { name: "Aiden", result: 20 },
-            { name: "Evan", result: 21 },
-            { name: "Dany", result: -7 },
-        ]);
-        addGame("Jan 23rd", [
-            { name: "William", result: 22.20 },
-            { name: "Michael", result: 156 },
-            { name: "Warren", result: 10 },
-            { name: "Kathy", result: 51 },
-            { name: "Daniel", result: -5 },
-            { name: "Aiden", result: -25.20 },
-            { name: "Evan", result: -160 },
-            { name: "Dany", result: -36 },
-        ]);
-        addGame("Jan 30th", [
-            { name: "William", result: 25 },
-            { name: "Michael", result: -10 },
-            { name: "Warren", result: 5 },
-            { name: "Kathy", result: 0 },
-            { name: "Daniel", result: -20 },
-            { name: "Aiden", result: 0 },
-        ]);
-        addGame("Feb 6th", [
-            { name: "William", result: 26.60 },
-            { name: "Michael", result: 47.80 },
-            { name: "Warren", result: 5 },
-            { name: "Kathy", result: 46 },
-            { name: "Daniel", result: -10 },
-            { name: "Evan", result: -116 },
-        ]);
-        addGame("Feb 13th", [
-            { name: "William", result: 0 },
-            { name: "Michael", result: 0 },
-            { name: "Warren", result: 10 },
-            { name: "Kathy", result: 0 },
-            { name: "Daniel", result: -10 },
-        ]);
-        addGame("Feb 20th", [
-            { name: "William", result: -152 },
-            { name: "Michael", result: 40 },
-            { name: "Warren", result: 35 },
-            { name: "Kathy", result: 116 },
-            { name: "Daniel", result: 16 },
-            { name: "Evan", result: 0 },
-            { name: "Aiden", result: 20 },
-            { name: "Matthew", result: 20 },
-            { name: "Jeremy", result: -60 },
-        ]);
-        addGame("Feb 27th", [
-            { name: "William", result: 40 },
-            { name: "Michael", result: 0 },
-            { name: "Warren", result: 0 },
-            { name: "Kathy", result: 0 },
-            { name: "Daniel", result: -35 },
-            { name: "Evan", result: 5 },
-            { name: "Aiden", result: -10 },
-        ]);
-        addGame("March 13th", [
-            { name: "William", result: -15 },
-            { name: "Michael", result: 35 },
-            { name: "Warren", result: 35 },
-            { name: "Kathy", result: -20 },
-            { name: "Daniel", result: -15 },
-            { name: "Evan", result: 35 },
-            { name: "Aiden", result: -15 },
-        ]);
-        addGame("March 20th", [
-            { name: "William", result: -42.10 },
-            { name: "Michael", result: 0 },
-            { name: "Warren", result: 13.10 },
-            { name: "Kathy", result: 46 },
-            { name: "Daniel", result: -15 },
-            { name: "Evan", result: 41 },
-        ]);
-        addGame("March 27th", [
-            { name: "William", result: -10 },
-            { name: "Michael", result: 55 },
-            { name: "Warren", result: 12 },
-            { name: "Kathy", result: 80 },
-            { name: "Daniel", result: 20 },
-            { name: "Evan", result: -130 },
-            { name: "Aiden", result: -25 },
-        ]);
-        addGame("April 4th", [
-            { name: "William", result: 76 },
-            { name: "Michael", result: 57 },
-            { name: "Warren", result: 55 },
-            { name: "Kathy", result: 10 },
-            { name: "Daniel", result: 10 },
-            { name: "Evan", result: -215 },
-        ]);
-        addGame("April 10th", [
-            { name: "William", result: 7 },
-            { name: "Michael", result: 15 },
-            { name: "Warren", result: 10 },
-            { name: "Kathy", result: 19.60 },
-            { name: "Daniel", result: -13 },
-            { name: "Evan", result: -39.60 },
-        ]);
-        addGame("April 17th", [
-            { name: "William", result: 85 },
-            { name: "Michael", result: -138 },
-            { name: "Warren", result: 36 },
-            { name: "Kathy", result: 30 },
-            { name: "Daniel", result: -103 },
-            { name: "Evan", result: 125 },
-        ]);
-        addGame("April 25th", [
-            { name: "William", result: -60 },
-            { name: "Michael", result: -20 },
-            { name: "Warren", result: 10 },
-            { name: "Kathy", result: 5 },
-            { name: "Daniel", result: 20 },
-            { name: "Evan", result: 75 },
-            { name: "Aiden", result: -30 },
-        ]);
-        addGame("May 1st", [
-            { name: "William", result: -60 },
-            { name: "Michael", result: -15 },
-            { name: "Warren", result: 35 },
-            { name: "Daniel", result: 48.85 },
-            { name: "Evan", result: -187.65 },
-            { name: "Jeremy", result: -11.80 },
-            { name: "Matthew", result: 159.60 },
-        ]);
-        addGame("May 8th", [
-            { name: "William", result: 25 },
-            { name: "Michael", result: -40 },
-            { name: "Kathy", result: 5 },
-            { name: "Warren", result: 0 },
-            { name: "Daniel", result: -38 },
-            { name: "Evan", result: -146.20 },
-            { name: "Jeremy", result: 192.20 },
-        ]);
-        addGame("May 15th", [
-            { name: "William", result: -184.50 },
-            { name: "Michael", result: 111 },
-            { name: "Kathy", result: 7 },
-            { name: "Warren", result: 25 },
-            { name: "Daniel", result: -23 },
-            { name: "Evan", result: 85 },
-            { name: "Jeremy", result: 121 },
-            { name: "Matthew", result: -116.50 },
-        ]);
-        addGame("May 22nd", [
-            { name: "William", result: -64 },
-            { name: "Michael", result: 28 },
-            { name: "Kathy", result: 58 },
-            { name: "Warren", result: 25 },
-            { name: "Daniel", result: -77 },
-            { name: "Evan", result: 50 },
-            { name: "Jeremy", result: 1 },
-            { name: "Matthew", result: 5 },
-            { name: "Aiden", result: -24 },
-            
-        ]);
-        addGame("May 29th", [
-            { name: "William", result: -475 },
-            { name: "Michael", result: 185 },
-            { name: "Kathy", result: -58 },
-            { name: "Warren", result: 117 },
-            { name: "Daniel", result: 194 },
-            { name: "Evan", result: -124 },
-            { name: "Jeremy", result: 115 },
-            { name: "Matthew", result: -8 },
-        ]);
-        addGame("June 3rd", [
-            { name: "William", result: 75 },
-            { name: "Michael", result: 40 },
-            { name: "Kathy", result: -34 },
-            { name: "Warren", result: 12 },
-            { name: "Daniel", result: -25 },
-            { name: "Evan", result: -155 },
-            { name: "Jeremy", result: 80 },
-            { name: "Matthew", result: 52 },
-            { name: "Aiden", result: -34.60 },
-        ]);
-        addGame("June 13th", [
-            { name: "William", result: -64 },
-            { name: "Michael", result: -18.60 },
-            { name: "Kathy", result: 0 },
-            { name: "Warren", result: 5 },
-            { name: "Daniel", result: 69 },
-            { name: "Evan", result: 55 },
-            { name: "Jeremy", result: -5 },
-            { name: "Matthew", result: -51.60 },
-        ]);
-        addGame("June 19", [
-            { name: "Michael", result: 0 },
-            { name: "Marissa", result: 0 },
-            { name: "Kathy", result: 5 },
-            { name: "Jeremy", result: 10},
-            { name: "Matthew", result: -15 },
-        ]);
-        addGame("June 26th", [
-            { name: "William", result: -19.50 },
-            { name: "Michael", result: -49.50 },
-            { name: "Kathy", result: 41 },
-            { name: "Warren", result: -68 },
-            { name: "Daniel", result: 20 },
-            { name: "Evan", result: 50 },
-            { name: "Jeremy", result: 42 },
-            { name: "Matthew", result: -52 },
-        ]);
-        addGame("July 3rd", [
-            { name: "William", result: -196 },
-            { name: "Michael", result: 90},
-            { name: "Kathy", result: 48 },
-            { name: "Warren", result: 1 },
-            { name: "Daniel", result: -5 },
-            { name: "Evan", result: 19 },
-            { name: "Jeremy", result: 101 },
-            { name: "Matthew", result: -52 },
-        ]);
-        addGame("July 10th", [
-            { name: "William", result: 46 },
-            { name: "Michael", result: 0 },
-            { name: "Kathy", result: 20 },
-            { name: "Warren", result: 0 },
-            { name: "Daniel", result: 58.20 },
-            { name: "Evan", result: -320.20 },
-            { name: "Jeremy", result: 161 },
-            { name: "Matthew", result: 58 },
-        ]);
-        addGame("July 17th", [
-            { name: "William", result: 15 },
-            { name: "Michael", result: -54 },
-            { name: "Kathy", result: 25 },
-            { name: "Warren", result: -20 },
-            { name: "Daniel", result: -70 },
-            { name: "Evan", result: 79 },
-            { name: "Jeremy", result: 5 },
-            { name: "Matthew", result: 61 },
-            { name: "Aiden", result: -11 },
-        ]);
-        addGame("July 18th", [
-            { name: "William", result: 34 },
-            { name: "Warren", result: 5 },
-            { name: "Daniel", result: 0 },
-            { name: "Jeremy", result: 1 },
-            { name: "Matthew", result: -40 },
-        ]);
-        addGame("July 24th", [
-            { name: "William", result: -184.40 },
-            { name: "Michael", result: -25 },
-            { name: "Kathy", result: -5 },
-            { name: "Warren", result: -15 },
-            { name: "Daniel", result: 160 },
-            { name: "Evan", result: 298.40 },
-            { name: "Jeremy", result: -182 },
-        ]);
-        addGame("July 31st", [
-            { name: "William", result: 95 },
-            { name: "Michael", result: -180 },
-            { name: "Kathy", result: -118 },
-            { name: "Warren", result: 22 },
-            { name: "Daniel", result: 40 },
-            { name: "Evan", result: 40 },
-            { name: "Jeremy", result: 150 },
-        ]);
-        addGame("Aug 3rd", [
-            { name: "William", result: 25 },
-            { name: "Michael", result: 0},
-            { name: "Kathy", result: 0 },
-            { name: "Warren", result: 1 },
-            { name: "Matthew", result: 0 },
-            { name: "Daniel", result: -10 },
-            { name: "Jeremy", result: -16 },
-        ]);
-        addGame("Aug 7th", [
-            { name: "William", result: 25 },
-            { name: "Michael", result: 20 },
-            { name: "Kathy", result: -20 },
-            { name: "Warren", result: 61 },
-            { name: "Matthew", result: 50 },
-            { name: "Daniel", result: 35 },
-            { name: "Evan", result: -150 },
-            { name: "Jeremy", result: -31 },
-        ]);
-        addGame("Aug 14th", [
-            { name: "William", result: 100 },
-            { name: "Michael", result: -99 },
-            { name: "Kathy", result: 0 },
-            { name: "Warren", result: 25 },
-            { name: "Matthew", result: -25 },
-            { name: "Daniel", result: 99 },
-            { name: "Evan", result: -160 },
-            { name: "Jeremy", result: 60 },
-            { name: "Marcus", result: 0 },
-        ]);
-        addGame("Aug 28th", [
-            { name: "William", result: 107.10 },
-            { name: "Michael", result: 57 },
-            { name: "Kathy", result: -25 },
-            { name: "Warren", result: 50 },
-            { name: "Matthew", result: -65 },
-            { name: "Daniel", result: 1 },
-            { name: "Evan", result: -130.10 },
-            { name: "Jeremy", result: 25 }
-        ]);
-        addGame("Sept 3rd", [
-            { name: "William", result: 100},
-            { name: "Michael", result: 40 },
-            { name: "Daniel", result: -40 },
-            { name: "Rocky", result: -100 },
-        ]);
-        addGame("Sept 10th", [ // Find Game Sticky Note Results
-            { name: "William", result: 0 },
-            { name: "Michael", result: 0 },
-            { name: "Kathy", result: 0 },
-            { name: "Warren", result: 0 },
-            { name: "Daniel", result: 0 },
-            { name: "Evan", result: 0 },
-        ]);
-        addGame("Sept 18th", [
-            { name: "William", result: 25 },
-            { name: "Michael", result: 9 },
-            { name: "Kathy", result: -25 },
-            { name: "Warren", result: -12 },
-            { name: "Daniel", result: 30 },
-            { name: "Evan", result: -52 },
-        ]);
-        addGame("Sept 25th", [
-            { name: "William", result: -80 },
-            { name: "Michael", result: -54 },
-            { name: "Kathy", result: 45 },
-            { name: "Warren", result: 45 },
-            { name: "Daniel", result: 29 },
-            { name: "Evan", result: 5 },
-        ]);
-        addGame("Oct 2nd", [
-            { name: "William", result: 31 },
-            { name: "Michael", result: -16 },
-            { name: "Kathy", result:  -15},
-            { name: "Warren", result: 22 },
-            { name: "Daniel", result: 45 },
-            { name: "Evan", result: -59 },
-        ]);
-        addGame("Oct 9th", [
-            { name: "William", result: -25 },
-            { name: "Michael", result: 15 },
-            { name: "Kathy", result:  0},
-            { name: "Warren", result: 5 },
-            { name: "Daniel", result: 5 },
-        ]);
-        addGame("Oct 12th", [
-            { name: "William", result: 61 },
-            { name: "Michael", result: 61 },
-            { name: "Kathy", result:  -30},
-            { name: "Warren", result: -80 },
-            { name: "Daniel", result: -23 },
-            { name: "Evan", result: 32 },
-            { name: "Jeremy", result: 5},
-            { name: "Matthew", result: -3 },
-        ]);
-        addGame("Oct 16th", [
-            { name: "William", result: -20 },
-            { name: "Michael", result: -8 },
-            { name: "Kathy", result:  -30},
-            { name: "Warren", result: 10 },
-            { name: "Daniel", result: 0 },
-            { name: "Evan", result: 32 },
-        ]);
-        addGame("Oct 24th", [
-            { name: "William", result: 20 },
-            { name: "Michael", result: 22 },
-            { name: "Kathy", result:  -30},
-            { name: "Warren", result: 74 },
-            { name: "Daniel", result: -47 },
-            { name: "Evan", result: -61 },
-            { name: "Rocky", result: 17},
-            { name: "Marcus", result: -5 },
-        ]);
-        addGame("Oct 31st", [
-            { name: "William", result: 67 },
-            { name: "Michael", result: 6 },
-            { name: "Kathy", result:  -30},
-            { name: "Warren", result: 45 },
-            { name: "Daniel", result: -23 },
-            { name: "Evan", result: -140 },
-            { name: "Matthew", result: 15 },
-        ]);
-        addGame("Nov 7th", [
-            { name: "William", result: -110 },
-            { name: "Michael", result: 25 },
-            { name: "Kathy", result:  -24},
-            { name: "Warren", result: 45 },
-            { name: "Daniel", result: 59.20 },
-            { name: "Evan", result: 45 },
-            { name: "Matthew", result: -40 },
-        ]); 
-        addGame("Nov 13th", [
-            { name: "William", result: -290 },
-            { name: "Michael", result: 112 },
-            { name: "Kathy", result:  5},
-            { name: "Warren", result: 45 },
-            { name: "Daniel", result: 43},
-            { name: "Evan", result: 40 },
-        ]); 
-        addGame("Nov 20th", [
-            { name: "William", result: -30 },
-            { name: "Michael", result: 0 },
-            { name: "Kathy", result:  0},
-            { name: "Warren", result: 0 },
-            { name: "Daniel", result: 16},
-            { name: "Evan", result: 14 },
-        ]); 
-        addGame("Nov 27th", [
-            { name: "William", result: 35 },
-            { name: "Michael", result: 0 },
-            { name: "Kathy", result:  0},
-            { name: "Warren", result: 1 },
-            { name: "Daniel", result: 0},
-            { name: "Evan", result: -34 },
-        ]); 
-        addGame("Dec 5th", [
-            { name: "William", result: 43 },
-            { name: "Michael", result: 6 },
-            { name: "Kathy", result:  6},
-            { name: "Warren", result: -23 },
-            { name: "Daniel", result: 2},
-            { name: "Evan", result: 10 },
-            { name: "Marcus", result: 5 },
-            { name: "Bri", result: 2 },
-        ]); 
-        addGame("Dec 18th", [
-            { name: "William", result: -22.80 },
-            { name: "Michael", result: 9 },
-            { name: "Kathy", result:  8},
-            { name: "Warren", result: 3 },
-            { name: "Daniel", result: 8},
-            { name: "Evan", result: 17 },
-            { name: "Matthew", result: 27.20 },
-        ]); 
-        addGame("Dec 21th", [
-            { name: "William", result: 15 },
-            { name: "Michael", result: 15.80 },
-            { name: "Kathy", result:  -75.80},
-            { name: "Warren", result: -55 },
-            { name: "Daniel", result: 15},
-            { name: "Evan", result: 60 },
-            { name: "Matthew", result: 27.20 },
-            { name: "Jeremy", result: 5 },
-        ]); 
-        addGame("Dec 28th", [
-            { name: "William", result:  12},
-            { name: "Michael", result: 100 },
-            { name: "Warren", result: -37 },
-            { name: "Daniel", result: 110},
-            { name: "Matthew", result: -150 },
-            { name: "Jeremy", result: -40 },
-        ]); 
-        addGame("Dec 31st", [
-            { name: "William", result:  -14},
-            { name: "Michael", result: -95 },
-            { name: "Kathy", result:  -87},
-            { name: "Warren", result: -44 },
-            { name: "Daniel", result: 227},
-            { name: "Matthew", result: 10 },
-            { name: "Jeremy", result: 65 },
-            { name: "DanielM", result: -44 },
-        ]); 
-
-        populateLeaderboard();
-        plotAllPlayersGraph();
-    </script>
 </body>
 </html>
