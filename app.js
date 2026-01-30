@@ -6,8 +6,6 @@
     const yearLabel = document.getElementById("year-label");
     const leaderboardBody = document.getElementById("leaderboard-body");
     const emptyState = document.getElementById("empty-state");
-    const statSessions = document.getElementById("stat-sessions");
-    const statPlayers = document.getElementById("stat-players");
     const allPlayersSection = document.getElementById("all-players-graph-section");
     const dateSelect = document.getElementById("date-select");
     const dateResultsBody = document.getElementById("date-results-body");
@@ -87,7 +85,6 @@
             gamesByDate.get(game.date).push({ name: game.name, result: game.result });
         });
 
-        renderStats(yearGames);
         populateLeaderboard();
         plotAllPlayersGraph();
         populateDateSelect(activeDates);
@@ -123,11 +120,6 @@
         return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
     }
 
-    function renderStats(yearGames) {
-        statSessions.textContent = yearGames.length.toString();
-        statPlayers.textContent = players.length.toString();
-    }
-
     function renderFunStats() {
         funStatsBody.innerHTML = "";
 
@@ -149,8 +141,8 @@
         });
 
         const streaks = getLongestStreaks();
-        const mostSessions = getMostSessionsPlayed();
-        const bestAverage = getBestAverageNight();
+        const bestMonth = getBestMonthByPlayer();
+        const mostConsistent = getMostConsistentPlayer();
 
         const items = [
             {
@@ -174,14 +166,14 @@
                 detail: streaks.loss.range
             },
             {
-                title: "Most sessions played",
-                value: mostSessions ? `${mostSessions.games} sessions · ${mostSessions.name}` : "N/A",
-                detail: mostSessions ? "All season" : ""
+                title: "Best month",
+                value: bestMonth ? `${formatCurrency(bestMonth.total)} · ${bestMonth.name}` : "N/A",
+                detail: bestMonth ? bestMonth.label : ""
             },
             {
-                title: "Best average night",
-                value: bestAverage ? `${formatCurrency(bestAverage.average)} · ${bestAverage.name}` : "N/A",
-                detail: bestAverage ? "All season" : ""
+                title: "Most consistent player",
+                value: mostConsistent ? `${formatCurrency(mostConsistent.deviation)} · ${mostConsistent.name}` : "N/A",
+                detail: mostConsistent ? "Lowest standard deviation" : ""
             }
         ];
 
@@ -289,29 +281,50 @@
         return result;
     }
 
-    function getMostSessionsPlayed() {
-        if (players.length === 0) {
+    function getBestMonthByPlayer() {
+        if (games.length === 0) {
             return null;
         }
-        return players.reduce((best, player) => {
-            if (!best || player.games > best.games) {
-                return { name: player.name, games: player.games };
+        const totals = new Map();
+        games.forEach((game) => {
+            const monthKey = game.date.slice(0, 7);
+            const key = `${game.name}|${monthKey}`;
+            totals.set(key, (totals.get(key) || 0) + game.result);
+        });
+
+        let bestKey = null;
+        let bestTotal = -Infinity;
+        totals.forEach((total, key) => {
+            if (total > bestTotal) {
+                bestTotal = total;
+                bestKey = key;
             }
-            return best;
-        }, null);
+        });
+
+        if (!bestKey) {
+            return null;
+        }
+
+        const [name, monthKey] = bestKey.split("|");
+        const labelDate = new Date(`${monthKey}-01T12:00:00`);
+        const label = labelDate.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+        return { name, label, total: bestTotal };
     }
 
-    function getBestAverageNight() {
+    function getMostConsistentPlayer() {
         if (players.length === 0) {
             return null;
         }
         return players.reduce((best, player) => {
-            if (player.games === 0) {
+            const playerGames = games.filter((game) => game.name === player.name);
+            if (playerGames.length < 2) {
                 return best;
             }
-            const avg = player.total / player.games;
-            if (!best || avg > best.average) {
-                return { name: player.name, average: avg };
+            const mean = playerGames.reduce((sum, game) => sum + game.result, 0) / playerGames.length;
+            const variance = playerGames.reduce((sum, game) => sum + (game.result - mean) ** 2, 0) / playerGames.length;
+            const deviation = Math.sqrt(variance);
+            if (!best || deviation < best.deviation) {
+                return { name: player.name, deviation };
             }
             return best;
         }, null);
