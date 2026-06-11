@@ -163,6 +163,71 @@ window.POKER_DATA = {
                 { name: "DanielM", result: -20 },
             ]
         },
+        {
+            date: "2026-04-09",
+            results: [
+                { name: "Nicole", result: 85 },
+                { name: "Joyce", result: 66 },
+                { name: "William", result: 64 },
+                { name: "DanielM", result: 60 },
+                { name: "Michael", result: 5 },
+                { name: "Regina", result: 5 },
+                { name: "Warren", result: 0 },
+                { name: "Daniel", result: -15 },
+                { name: "Matthew", result: -45 },
+                { name: "Alex", result: -46 },
+                { name: "Evan", result: -189 },
+            ]
+        },
+        {
+            date: "2026-04-16",
+            results: [
+                { name: "Daniel", result: 25 },
+                { name: "Joyce", result: 0 },
+                { name: "Nicole", result: 0 },
+                { name: "Siwan", result: 0 },
+                { name: "William", result: 0 },
+                { name: "Warren", result: -5 },
+                { name: "Michael", result: -20 },
+            ]
+        },
+        {
+            date: "2026-04-30",
+            results: [
+                { name: "Evan", result: 117.20 },
+                { name: "Jeremy", result: 60 },
+                { name: "Michael", result: 52.20 },
+                { name: "Steven", result: 40 },
+                { name: "DanielM", result: 10 },
+                { name: "Warren", result: 5 },
+                { name: "Regina", result: 0 },
+                { name: "Kathy", result: -32.80 },
+                { name: "Daniel", result: -40 },
+                { name: "William", result: -131.20 },
+            ]
+        },
+        {
+            date: "2026-05-14",
+            results: [
+                { name: "Daniel", result: 40 },
+                { name: "Michael", result: 15 },
+                { name: "William", result: 9.20 },
+                { name: "Warren", result: -10 },
+                { name: "Evan", result: -56 },
+            ]
+        },
+        {
+            date: "2026-06-04",
+            results: [
+                { name: "Daniel", result: 104 },
+                { name: "Evan", result: 65 },
+                { name: "Michael", result: -3.50 },
+                { name: "Warren", result: -10.20 },
+                { name: "William", result: -34 },
+                { name: "Jeremy", result: -44.80 },
+                { name: "Kathy", result: -68.75 },
+            ]
+        },
     ],
     "2025": [
         {
