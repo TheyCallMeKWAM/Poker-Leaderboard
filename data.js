@@ -264,6 +264,31 @@ window.POKER_DATA = {
             ]
         },
         {
+            date: "2026-07-02",
+            results: [
+                { name: "Jeremy", result: 110 },
+                { name: "William", result: 86.30 },
+                { name: "Warren", result: 15 },
+                { name: "Daniel", result: 10 },
+                { name: "Kathy", result: -40 },
+                { name: "Michael", result: -60 },
+                { name: "Evan", result: -111.30 },
+            ]
+        },
+        {
+            date: "2026-07-09",
+            results: [
+                { name: "Evan", result: 75 },
+                { name: "Kathy", result: 40 },
+                { name: "Jeremy", result: 40 },
+                { name: "Warren", result: 20 },
+                { name: "Michael", result: 12 },
+                { name: "Daniel", result: -40 },
+                { name: "William", result: -65 },
+                { name: "Matthew", result: -80 },
+            ]
+        },
+        {
             date: "2026-07-16",
             results: [
                 { name: "Daniel", result: 275 },
