@@ -320,6 +320,19 @@ window.POKER_DATA = {
                 { name: "William", result: -245 },
             ]
         },
+        {
+            date: "2026-08-13",
+            results: [
+                { name: "William", result: 235 },
+                { name: "Daniel", result: 228.70 },
+                { name: "Warren", result: 45 },
+                { name: "Kathy", result: 0 },
+                { name: "Michael", result: -5 },
+                { name: "Jeremy", result: -10 },
+                { name: "Matthew", result: -215 },
+                { name: "Evan", result: -272.30 },
+            ]
+        },
     ],
     "2025": [
         {
