@@ -406,7 +406,7 @@ window.POKER_DATA = {
                 { name: "Daniel", result: 125 },
                 { name: "Warren", result: 95 },
                 { name: "Michael", result: 75 },
-                { name: "William", result: 20 },
+                { name: "William", result: 5 },
                 { name: "Evan", result: -300 },
             ]
         },
