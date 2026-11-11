@@ -1,5 +1,7 @@
 (() => {
     const data = window.POKER_DATA || {};
+    // Years where only season totals were tracked (no per-game results).
+    const summaryData = window.POKER_SUMMARY || {};
     const currentYear = new Date().getFullYear().toString();
 
     const yearButtons = document.getElementById("year-buttons");
@@ -11,6 +13,9 @@
     const dateResultsBody = document.getElementById("date-results-body");
     const dateEmpty = document.getElementById("date-empty");
     const funStatsBody = document.getElementById("fun-stats-body");
+    const funStatsSection = document.getElementById("fun-stats");
+    const dateResultsSection = document.getElementById("date-results");
+    const summaryNote = document.getElementById("summary-note");
 
     let players = [];
     let games = [];
@@ -40,7 +45,7 @@
     }
 
     function getYears() {
-        const yearSet = new Set(Object.keys(data));
+        const yearSet = new Set([...Object.keys(data), ...Object.keys(summaryData)]);
         yearSet.add(currentYear);
         return Array.from(yearSet).sort((a, b) => Number(b) - Number(a));
     }
@@ -71,6 +76,15 @@
             button.setAttribute("aria-pressed", isActive ? "true" : "false");
         });
 
+        const isSummaryYear = !data[year] && Array.isArray(summaryData[year]);
+        funStatsSection.hidden = isSummaryYear;
+        dateResultsSection.hidden = isSummaryYear;
+        summaryNote.hidden = !isSummaryYear;
+        if (isSummaryYear) {
+            renderSummaryYear(summaryData[year]);
+            return;
+        }
+
         const yearGames = (data[year] || []).slice().sort((a, b) => a.date.localeCompare(b.date));
         resetData();
         yearGames.forEach((game) => addGame(game.date, game.results));
@@ -94,6 +108,27 @@
         renderDateResults(dateSelect.value || null);
         renderFunStats();
         updateEmptyState(yearGames.length === 0);
+    }
+
+    function renderSummaryYear(entries) {
+        resetData();
+        activeDates = [];
+        gamesByNameDate = new Map();
+        gamesByDate = new Map();
+        plotAllPlayersGraph();
+        leaderboardBody.innerHTML = "";
+        const sorted = entries.slice().sort((a, b) => b.total - a.total);
+        sorted.forEach((player, index) => {
+            const row = document.createElement("tr");
+            row.innerHTML = `
+                <td data-label="Rank">${index + 1}</td>
+                <td data-label="Player">${player.name}</td>
+                <td data-label="Total">${formatCurrency(player.total)}</td>
+                <td data-label="Games">${player.games}</td>
+            `;
+            leaderboardBody.appendChild(row);
+        });
+        updateEmptyState(sorted.length === 0);
     }
 
     function resetData() {
