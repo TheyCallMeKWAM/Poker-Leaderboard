@@ -39,6 +39,7 @@
     let rafId = null;
     let lastTs = null;
     let labels = [];
+    let dayNumbers = [];
     let multiYear = false;
     let heads = [];
 
@@ -276,6 +277,24 @@
         }
     }
 
+    // A player counts as active if they've played in the last four weeks
+    // (relative to the night on screen). Idle players keep their line and dot,
+    // just faded, and don't get a name tag until they play again.
+    const ACTIVE_DAYS = 28;
+
+    function dayNumber(dateStr) {
+        return Math.round(Date.parse(`${dateStr}T12:00:00Z`) / 86400000);
+    }
+
+    function isActive(s, time) {
+        const idx = Math.min(dates.length - 1, Math.round(time));
+        const last = s.lastPlayed[idx];
+        if (last === -1) {
+            return false;
+        }
+        return dayNumbers[idx] - dayNumbers[last] <= ACTIVE_DAYS;
+    }
+
     function drawLines() {
         const dimOthers = selected !== null;
         const ordered = series.slice().sort((a, b) => (a.name === selected) - (b.name === selected));
@@ -284,7 +303,7 @@
                 return;
             }
             const isSel = s.name === selected;
-            const alpha = dimOthers && !isSel ? 0.14 : 1;
+            const alpha = dimOthers && !isSel ? 0.14 : (isSel || isActive(s, t) ? 1 : 0.35);
             ctx.lineJoin = "round";
             ctx.lineCap = "round";
             // Soft glow underneath, then the bright core.
@@ -314,7 +333,7 @@
         const dimOthers = selected !== null;
         heads.forEach((h) => {
             const isSel = h.s.name === selected;
-            const alpha = dimOthers && !isSel ? 0.2 : 1;
+            const alpha = dimOthers && !isSel ? 0.2 : (isSel || isActive(h.s, t) ? 1 : 0.35);
             const r = isSel ? 6 : (isNarrow() ? 3.6 : 4.4);
             const glow = ctx.createRadialGradient(h.x, h.y, 0, h.x, h.y, r * 4);
             glow.addColorStop(0, hexToRgba(h.s.color, 0.55 * alpha));
@@ -358,11 +377,13 @@
         const top = p.top - 6;
         const bottom = height - p.bottom + 4;
         // On phones, cap the tags so they don't bury the lines.
-        const capacity = Math.min(narrow ? 12 : Infinity, Math.floor((bottom - top) / (lh + gap)));
+        const capacity = Math.min(narrow ? 14 : Infinity, Math.floor((bottom - top) / (lh + gap)));
         ctx.font = `600 ${fontSize}px "Chakra Petch", "Space Grotesk", sans-serif`;
         ctx.textBaseline = "middle";
 
-        const pool = selected ? heads.filter((h) => h.s.name === selected) : heads.slice();
+        const pool = selected
+            ? heads.filter((h) => h.s.name === selected)
+            : heads.filter((h) => isActive(h.s, t));
         pool.sort((a, b) => Math.abs(b.v) - Math.abs(a.v));
         const chosen = pool.slice(0, capacity).map((h) => {
             const text = `${h.s.name} ${money(h.v, true)}`;
@@ -488,6 +509,7 @@
             row.li.classList.toggle("is-waiting", waiting);
             row.li.classList.toggle("is-selected", entry.s.name === selected);
             row.li.classList.toggle("is-dim", selected !== null && entry.s.name !== selected);
+            row.li.classList.toggle("is-idle", selected === null && entry.v !== null && !isActive(entry.s, t));
             if (!waiting) {
                 rank += 1;
             }
@@ -679,10 +701,15 @@
         render(config) {
             dates = config.dates || [];
             labels = config.labels || [];
+            dayNumbers = dates.map(dayNumber);
             multiYear = new Set(dates.filter((d, i) => !labels[i]).map((d) => d.slice(0, 4))).size > 1;
             series = (config.series || []).map((s) => ({
                 ...s,
-                first: s.values.findIndex((v) => v !== null)
+                first: s.values.findIndex((v) => v !== null),
+                lastPlayed: s.played.reduce((acc, didPlay, i) => {
+                    acc.push(didPlay ? i : (i > 0 ? acc[i - 1] : -1));
+                    return acc;
+                }, [])
             })).filter((s) => s.first !== -1);
             if (selected && !series.some((s) => s.name === selected)) {
                 selected = null;
