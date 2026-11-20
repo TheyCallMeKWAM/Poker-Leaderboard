@@ -16,6 +16,8 @@
     const funStatsSection = document.getElementById("fun-stats");
     const dateResultsSection = document.getElementById("date-results");
     const summaryNote = document.getElementById("summary-note");
+    const heroYear = document.getElementById("hero-year");
+    const heroStats = document.getElementById("hero-stats");
 
     let players = [];
     let games = [];
@@ -24,7 +26,6 @@
     let gamesByDate = new Map();
     let activeYear = null;
 
-    let allPlayersChart = null;
     const playerCharts = new Map();
 
     const currency = new Intl.NumberFormat("en-US", {
@@ -69,6 +70,7 @@
         }
         activeYear = year;
         yearLabel.textContent = year;
+        heroYear.textContent = `${year} season`;
 
         Array.from(yearButtons.children).forEach((button) => {
             const isActive = button.dataset.year === year;
@@ -82,6 +84,11 @@
         summaryNote.hidden = !isSummaryYear;
         if (isSummaryYear) {
             renderSummaryYear(summaryData[year]);
+            const summarySorted = summaryData[year].slice().sort((a, b) => b.total - a.total);
+            renderHeroStats([
+                { label: "Players", value: summarySorted.length },
+                { label: "Season champ", value: summarySorted[0] ? summarySorted[0].name : "—", accent: true }
+            ]);
             return;
         }
 
@@ -108,6 +115,36 @@
         renderDateResults(dateSelect.value || null);
         renderFunStats();
         updateEmptyState(yearGames.length === 0);
+
+        const leader = [...players].sort((a, b) => b.total - a.total)[0];
+        renderHeroStats([
+            { label: "Nights", value: activeDates.length },
+            { label: "Players", value: players.length },
+            { label: "Leader", value: leader ? `${leader.name} ${formatCurrency(Math.round(leader.total))}` : "—", accent: true }
+        ]);
+    }
+
+    function renderHeroStats(stats) {
+        heroStats.innerHTML = "";
+        stats.forEach((stat) => {
+            const chip = document.createElement("div");
+            chip.className = stat.accent ? "hero-stat is-accent" : "hero-stat";
+            chip.innerHTML = `<span class="hero-stat-label"></span><span class="hero-stat-value"></span>`;
+            chip.querySelector(".hero-stat-label").textContent = stat.label;
+            chip.querySelector(".hero-stat-value").textContent = stat.value;
+            heroStats.appendChild(chip);
+        });
+    }
+
+    function rankCell(index) {
+        const rank = index + 1;
+        const medal = rank <= 3 ? ` rank-${rank}` : "";
+        return `<td data-label="Rank"><span class="rank-badge${medal}">${rank}</span></td>`;
+    }
+
+    function moneyCell(label, value) {
+        const tone = value > 0.004 ? "is-up" : value < -0.004 ? "is-down" : "is-even";
+        return `<td data-label="${label}"><span class="money ${tone}">${formatCurrency(roundCents(value))}</span></td>`;
     }
 
     function renderSummaryYear(entries) {
@@ -121,9 +158,9 @@
         sorted.forEach((player, index) => {
             const row = document.createElement("tr");
             row.innerHTML = `
-                <td data-label="Rank">${index + 1}</td>
-                <td data-label="Player">${player.name}</td>
-                <td data-label="Total">${formatCurrency(player.total)}</td>
+                ${rankCell(index)}
+                <td data-label="Player" class="player-name">${player.name}</td>
+                ${moneyCell("Total", player.total)}
                 <td data-label="Games">${player.games}</td>
             `;
             leaderboardBody.appendChild(row);
@@ -143,7 +180,7 @@
             games.push({ date, name, result });
             let player = players.find((p) => p.name === name);
             if (!player) {
-                player = { name, id: slugify(name), total: 0, games: 0 };
+                player = { name, id: slugify(name), total: 0, games: 0, color: getPaletteColor(players.length) };
                 players.push(player);
             }
             player.total += result;
@@ -556,10 +593,11 @@
             row.classList.add("player-row");
             row.dataset.playerId = player.id;
             row.dataset.playerName = player.name;
+            row.style.setProperty("--player-color", player.color);
             row.innerHTML = `
-                <td data-label="Rank">${index + 1}</td>
-                <td data-label="Player">${player.name}</td>
-                <td data-label="Total">${formatCurrency(player.total)}</td>
+                ${rankCell(index)}
+                <td data-label="Player" class="player-name"><span><span class="player-dot" aria-hidden="true"></span>${player.name}</span></td>
+                ${moneyCell("Total", player.total)}
                 <td data-label="Games">${player.games}</td>
             `;
 
@@ -600,10 +638,11 @@
                 return null;
             }
             const result = gamesByNameDate.get(key);
-            return `<p>${formatDateLabel(date)}: ${formatCurrency(result)}</p>`;
+            const tone = result > 0 ? "is-up" : result < 0 ? "is-down" : "is-even";
+            return `<li><span>${formatDateLabel(date)}</span><span class="money ${tone}">${formatCurrency(result)}</span></li>`;
         }).filter(Boolean);
 
-        dropdownCell.innerHTML = entries.join("");
+        dropdownCell.innerHTML = `<ul class="night-list">${entries.join("")}</ul>`;
         // Show the row before drawing so the chart can measure its width.
         // Clearing the inline style lets the stylesheet pick the display
         // (table-row on desktop, block on phones).
@@ -637,8 +676,8 @@
         results.forEach((entry) => {
             const row = document.createElement("tr");
             row.innerHTML = `
-                <td data-label="Player">${entry.name}</td>
-                <td data-label="Result">${formatCurrency(entry.result)}</td>
+                <td data-label="Player" class="player-name">${entry.name}</td>
+                ${moneyCell("Result", entry.result)}
             `;
             dateResultsBody.appendChild(row);
         });
@@ -678,6 +717,7 @@
             return lastKnownTotal;
         });
 
+        const color = (players.find((p) => p.name === playerName) || {}).color || "#22e8ff";
         const chart = new Chart(canvas, {
             type: "line",
             data: {
@@ -686,11 +726,11 @@
                     {
                         label: playerName,
                         data: dataPoints,
-                        borderColor: "#2563eb",
-                        backgroundColor: "rgba(37, 99, 235, 0.2)",
-                        borderWidth: 2,
-                        pointRadius: 2,
-                        pointHoverRadius: 4,
+                        borderColor: color,
+                        backgroundColor: color,
+                        borderWidth: 2.5,
+                        pointRadius: 2.5,
+                        pointHoverRadius: 5,
                         tension: 0.35,
                         spanGaps: true
                     }
@@ -702,82 +742,69 @@
         playerCharts.set(canvasId, chart);
     }
 
+    // Hands the season to the neon race graph (race.js): every player's
+    // running total per night, carried forward on nights they sat out.
     function plotAllPlayersGraph() {
-        if (allPlayersChart) {
-            allPlayersChart.destroy();
-            allPlayersChart = null;
-        }
-
-        if (activeDates.length === 0) {
+        if (activeDates.length === 0 || !window.NeonRace) {
             allPlayersSection.hidden = true;
             return;
         }
 
         allPlayersSection.hidden = false;
-        const datasets = players.map((player, index) => {
-            let cumulativeTotal = 0;
-            const dataPoints = activeDates.map((date) => {
+        const series = players.map((player) => {
+            let running = null;
+            const values = [];
+            const played = [];
+            activeDates.forEach((date) => {
                 const key = `${date}|${player.name}`;
-                if (gamesByNameDate.has(key)) {
-                    cumulativeTotal += gamesByNameDate.get(key);
-                    return cumulativeTotal;
+                const didPlay = gamesByNameDate.has(key);
+                if (didPlay) {
+                    running = roundCents((running || 0) + gamesByNameDate.get(key));
                 }
-                return null;
+                values.push(running);
+                played.push(didPlay);
             });
-
-            return {
-                label: player.name,
-                data: dataPoints,
-                borderColor: getPaletteColor(index),
-                backgroundColor: "transparent",
-                tension: 0.35,
-                spanGaps: true
-            };
+            return { name: player.name, color: player.color, values, played };
         });
 
-        const allData = datasets.flatMap((set) => set.data).filter((value) => value !== null);
-        const allMin = allData.length ? Math.min(...allData) : 0;
-        const allMax = allData.length ? Math.max(...allData) : 0;
-        const minWithZero = Math.min(0, allMin);
-        const maxWithZero = Math.max(0, allMax);
-        const range = Math.max(1, maxWithZero - minWithZero);
-        const stepSize = Math.max(25, Math.round(range / 12 / 25) * 25);
-
-        allPlayersChart = new Chart(document.getElementById("all-players-graph"), {
-            type: "line",
-            data: {
-                labels: activeDates.map(formatDateLabel),
-                datasets
-            },
-            options: getLineChartOptions({
-                wide: true,
-                ySuggestedMin: minWithZero,
-                ySuggestedMax: maxWithZero,
-                yStepSize: stepSize
-            })
-        });
+        window.NeonRace.render({ dates: activeDates, series });
     }
 
     function isNarrowScreen() {
         return window.matchMedia("(max-width: 700px)").matches;
     }
 
+    // Neon sign colors. Past the hand-picked set, keep spinning the hue wheel.
     function getPaletteColor(index) {
         const palette = [
-            "#ef4444",
-            "#f97316",
-            "#facc15",
-            "#22c55e",
-            "#06b6d4",
-            "#2563eb",
-            "#8b5cf6",
-            "#ec4899",
-            "#14b8a6",
-            "#84cc16",
-            "#0ea5e9",
-            "#f43f5e"
+            "#ff2bd6",
+            "#22e8ff",
+            "#ffb020",
+            "#39ff88",
+            "#b26bff",
+            "#ff4d6d",
+            "#4d8dff",
+            "#f9f871",
+            "#ff7a1a",
+            "#00ffc8",
+            "#ff9cf2",
+            "#a3ff3a"
         ];
-        return palette[index % palette.length];
+        if (index < palette.length) {
+            return palette[index];
+        }
+        const hue = Math.round((index * 137.508 + 200) % 360);
+        return hslToHex(hue, 95, 64);
+    }
+
+    function hslToHex(h, s, l) {
+        const sat = s / 100;
+        const light = l / 100;
+        const k = (n) => (n + h / 30) % 12;
+        const a = sat * Math.min(light, 1 - light);
+        const f = (n) => light - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+        const hex = (x) => Math.round(x * 255).toString(16).padStart(2, "0");
+        return `#${hex(f(0))}${hex(f(8))}${hex(f(4))}`;
     }
 
     function updateEmptyState(isEmpty) {
@@ -810,7 +837,7 @@
                 legend: {
                     display: !hideLegend,
                     labels: {
-                        color: "#1f2937",
+                        color: "#e9e4ff",
                         boxWidth: narrow ? 10 : 40,
                         boxHeight: narrow ? 10 : 12,
                         padding: narrow ? 6 : 10,
@@ -824,7 +851,7 @@
             scales: {
                 x: {
                     ticks: {
-                        color: "#475569",
+                        color: "#a79fd6",
                         autoSkip: !showAllLabels,
                         maxTicksLimit: showAllLabels ? undefined : (compact ? 6 : 12),
                         maxRotation: showAllLabels ? 50 : (compact ? 45 : 0),
@@ -834,7 +861,7 @@
                         }
                     },
                     grid: {
-                        color: "rgba(148, 163, 184, 0.25)"
+                        color: "rgba(140, 120, 255, 0.14)"
                     }
                 },
                 y: {
@@ -842,7 +869,7 @@
                     suggestedMin: ySuggestedMin,
                     suggestedMax: ySuggestedMax,
                     ticks: {
-                        color: "#475569",
+                        color: "#a79fd6",
                         stepSize: yStepSize,
                         font: {
                             size: compact ? 10 : 12
@@ -855,7 +882,7 @@
                         }
                     },
                     grid: {
-                        color: "rgba(148, 163, 184, 0.25)"
+                        color: "rgba(140, 120, 255, 0.14)"
                     }
                 }
             }

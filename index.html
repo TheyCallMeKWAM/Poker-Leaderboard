@@ -3,30 +3,44 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#07051a">
     <title>Poker Night Leaderboard</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
+    <link href="https://fonts.googleapis.com/css2?family=Monoton&family=Orbitron:wght@500;700;900&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js" defer></script>
     <script src="data.js" defer></script>
     <script src="data-2024.js" defer></script>
+    <script src="skyline.js" defer></script>
+    <script src="race.js" defer></script>
     <script src="app.js" defer></script>
 </head>
 <body>
+    <div class="sky" aria-hidden="true">
+        <div class="stars"></div>
+    </div>
+
     <header class="site-header">
         <div class="header-inner">
-            <p class="eyebrow">Poker Night</p>
-            <h1>Poker Night Leaderboard</h1>
-            <p class="subtitle">Sampson Poker Night</p>
+            <p class="eyebrow">Sampson Poker Night</p>
+            <h1 class="neon-sign"><span class="neon-pink">Poker</span> <span class="neon-cyan">Night</span></h1>
+            <p class="subtitle">Leaderboard · <span id="hero-year"></span></p>
+            <div class="hero-stats" id="hero-stats">
+                <!-- Filled by app.js -->
+            </div>
+        </div>
+        <div class="skyline" id="skyline" aria-hidden="true">
+            <!-- SVG drawn by skyline.js -->
         </div>
     </header>
+
     <main>
-        <section id="leaderboard" class="table-card">
+        <section id="leaderboard" class="table-card panel panel-pink">
             <div class="section-title-row">
                 <div>
                     <h2 class="section-title">Leaderboard</h2>
-                    <p class="section-subtitle">Showing <span id="year-label"></span></p>
+                    <p class="section-subtitle">Showing <span id="year-label"></span> · tap a player for their nights</p>
                     <p class="section-subtitle" id="summary-note" hidden>Season totals only. Per-game results weren’t tracked this year.</p>
                 </div>
                 <div class="year-switch" id="year-buttons">
@@ -53,7 +67,45 @@
             </div>
         </section>
 
-        <section id="fun-stats" class="table-card">
+        <section id="all-players-graph-section" class="chart-card panel panel-cyan">
+            <div class="section-title-row">
+                <div>
+                    <h2 class="section-title">The Race</h2>
+                    <p class="section-subtitle">Everyone’s running total on one graph. Press play, drag the timeline, or swipe across the graph to move through the year. Tap a name to follow one player.</p>
+                </div>
+            </div>
+            <div class="race">
+                <div class="race-stage">
+                    <div class="race-canvas-shell" id="race-shell">
+                        <canvas id="race-canvas" aria-label="Running totals for every player across the season"></canvas>
+                    </div>
+                    <div class="race-controls">
+                        <button type="button" class="race-play" id="race-play" aria-label="Play">
+                            <svg viewBox="0 0 24 24" aria-hidden="true" class="icon-play"><path d="M7 4.5v15l13-7.5z"/></svg>
+                            <svg viewBox="0 0 24 24" aria-hidden="true" class="icon-pause"><path d="M6 4h4.5v16H6zM13.5 4H18v16h-4.5z"/></svg>
+                        </button>
+                        <div class="race-timeline">
+                            <label class="sr-only" for="race-slider">Timeline</label>
+                            <input type="range" id="race-slider" min="0" max="0" step="0.01" value="0">
+                            <div class="race-months" id="race-months" aria-hidden="true"></div>
+                        </div>
+                        <div class="race-readout">
+                            <span class="race-date" id="race-date">—</span>
+                            <span class="race-night" id="race-night"></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="race-standings">
+                    <div class="race-standings-head">
+                        <span>Standings</span>
+                        <button type="button" class="race-clear" id="race-clear" hidden>Show everyone</button>
+                    </div>
+                    <div class="race-scroll"><ol class="race-list" id="race-list"></ol></div>
+                </div>
+            </div>
+        </section>
+
+        <section id="fun-stats" class="table-card panel panel-amber">
             <div class="section-title-row">
                 <div>
                     <h2 class="section-title">Fun Stats</h2>
@@ -65,7 +117,7 @@
             </div>
         </section>
 
-        <section id="date-results" class="table-card">
+        <section id="date-results" class="table-card panel panel-violet">
             <div class="section-title-row">
                 <div>
                     <h2 class="section-title">Session Results</h2>
@@ -93,16 +145,10 @@
                 <p>No games logged for this year yet.</p>
             </div>
         </section>
-
-        <section id="all-players-graph-section" class="chart-card">
-            <div class="chart-header">
-                <h2 class="section-title">Performance of All Players</h2>
-                <p>Running totals across every session.</p>
-            </div>
-            <div class="chart-shell chart-shell-wide">
-                <canvas id="all-players-graph"></canvas>
-            </div>
-        </section>
     </main>
+
+    <footer class="site-footer">
+        <p>Open all night · Sampson Poker Night</p>
+    </footer>
 </body>
 </html>
