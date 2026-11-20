@@ -412,7 +412,7 @@
         }
 
         const dropdownRow = dropdownCell.parentElement;
-        const isOpen = dropdownRow.style.display === "table-row";
+        const isOpen = dropdownRow.style.display !== "none";
 
         document.querySelectorAll(".dropdown-row").forEach((row) => {
             row.style.display = "none";
@@ -432,8 +432,11 @@
         }).filter(Boolean);
 
         dropdownCell.innerHTML = entries.join("");
+        // Show the row before drawing so the chart can measure its width.
+        // Clearing the inline style lets the stylesheet pick the display
+        // (table-row on desktop, block on phones).
+        dropdownRow.style.display = "";
         plotPlayerGraph(playerId, playerName);
-        dropdownRow.style.display = "table-row";
     }
 
     function populateDateSelect(dates) {
@@ -503,10 +506,6 @@
             return lastKnownTotal;
         });
 
-        const chartWidth = Math.max(600, activeDates.length * 70);
-        canvas.style.width = `${chartWidth}px`;
-        canvas.width = chartWidth;
-
         const chart = new Chart(canvas, {
             type: "line",
             data: {
@@ -525,7 +524,7 @@
                     }
                 ]
             },
-            options: getLineChartOptions({ compact: true, hideLegend: true, showAllLabels: true })
+            options: getLineChartOptions({ compact: true, hideLegend: true, showAllLabels: !isNarrowScreen() })
         });
 
         playerCharts.set(canvasId, chart);
@@ -587,6 +586,10 @@
         });
     }
 
+    function isNarrowScreen() {
+        return window.matchMedia("(max-width: 700px)").matches;
+    }
+
     function getPaletteColor(index) {
         const palette = [
             "#ef4444",
@@ -618,11 +621,13 @@
         ySuggestedMax,
         yStepSize
     } = {}) {
+        const narrow = isNarrowScreen();
         return {
             responsive: true,
             maintainAspectRatio: false,
+            elements: narrow && wide ? { point: { radius: 1.5, hoverRadius: 4 } } : {},
             layout: {
-                padding: {
+                padding: narrow ? { top: 8, right: 8, bottom: 4, left: 0 } : {
                     top: 20,
                     right: wide ? 20 : 24,
                     bottom: compact ? 8 : 20,
@@ -634,9 +639,12 @@
                     display: !hideLegend,
                     labels: {
                         color: "#1f2937",
+                        boxWidth: narrow ? 10 : 40,
+                        boxHeight: narrow ? 10 : 12,
+                        padding: narrow ? 6 : 10,
                         font: {
                             family: "Space Grotesk",
-                            size: compact ? 10 : 12
+                            size: compact || narrow ? 10 : 12
                         }
                     }
                 }
@@ -646,8 +654,8 @@
                     ticks: {
                         color: "#475569",
                         autoSkip: !showAllLabels,
-                        maxTicksLimit: showAllLabels ? undefined : (compact ? 8 : 12),
-                        maxRotation: showAllLabels ? 50 : 0,
+                        maxTicksLimit: showAllLabels ? undefined : (compact ? 6 : 12),
+                        maxRotation: showAllLabels ? 50 : (compact ? 45 : 0),
                         minRotation: showAllLabels ? 50 : 0,
                         font: {
                             size: compact ? 10 : 12

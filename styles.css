@@ -222,13 +222,10 @@ section + section {
 }
 
 .player-chart-shell {
+    position: relative;
+    width: 100%;
+    height: 280px;
     margin-top: 1rem;
-    overflow-x: auto;
-    padding-bottom: 0.5rem;
-}
-
-.dropdown-content canvas {
-    height: 260px !important;
 }
 
 .section-title-row {
@@ -322,7 +319,7 @@ section + section {
     }
 
     .chart-shell-wide {
-        height: 340px;
+        height: 520px;
     }
 
     table,
@@ -373,11 +370,12 @@ section + section {
 
     .dropdown-row td {
         display: block;
+        width: 100%;
         padding: 0.75rem 0;
     }
 
-    .dropdown-content canvas {
-        height: 220px !important;
+    .player-chart-shell {
+        height: 260px;
     }
 
     .stats-list {
