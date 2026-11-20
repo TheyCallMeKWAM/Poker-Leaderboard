@@ -86,8 +86,8 @@
 
     function padding() {
         return isNarrow()
-            ? { left: 52, right: 58, top: 34, bottom: 26 }
-            : { left: 56, right: 104, top: 38, bottom: 30 };
+            ? { left: 52, right: 12, top: 34, bottom: 26 }
+            : { left: 60, right: 130, top: 38, bottom: 30 };
     }
 
     function niceStep(range) {
@@ -176,7 +176,7 @@
 
     function drawGrid() {
         const p = padding();
-        ctx.font = `500 ${isNarrow() ? 10 : 11}px "Space Grotesk", sans-serif`;
+        ctx.font = `600 ${isNarrow() ? 11 : 12}px "Chakra Petch", "Space Grotesk", sans-serif`;
         ctx.textBaseline = "middle";
         ctx.textAlign = "right";
         for (let v = yMin; v <= yMax + 0.001; v += yStep) {
@@ -237,7 +237,7 @@
         // Date pill riding the top of the scanline.
         const idx = Math.round(t);
         const text = dates[idx] ? nightLabel(idx) : "";
-        ctx.font = `700 ${isNarrow() ? 10 : 11}px "Orbitron", sans-serif`;
+        ctx.font = `700 ${isNarrow() ? 12 : 13}px "Chakra Petch", sans-serif`;
         const tw = ctx.measureText(text).width + 16;
         let px = x - tw / 2;
         px = Math.max(4, Math.min(width - tw - 4, px));
@@ -343,51 +343,67 @@
         drawLabels();
     }
 
-    // Name tags next to the dots. Biggest totals (and the followed player)
-    // get first claim on space; anything that would overlap is skipped.
+    // Name tags next to the dots. As many as fit the graph's height get a tag:
+    // the followed player first, then the biggest totals. Tags that would
+    // overlap are spread apart vertically, with a thin line back to their dot.
     function drawLabels() {
+        if (heads.length === 0) {
+            return;
+        }
         const narrow = isNarrow();
-        const limit = selected ? 1 : (narrow ? 7 : 16);
-        const fontSize = narrow ? 10 : 12;
-        ctx.font = `600 ${fontSize}px "Space Grotesk", sans-serif`;
+        const p = padding();
+        const fontSize = narrow ? 10.5 : 12;
+        const lh = fontSize + 5;
+        const gap = 2;
+        const top = p.top - 6;
+        const bottom = height - p.bottom + 4;
+        // On phones, cap the tags so they don't bury the lines.
+        const capacity = Math.min(narrow ? 12 : Infinity, Math.floor((bottom - top) / (lh + gap)));
+        ctx.font = `600 ${fontSize}px "Chakra Petch", "Space Grotesk", sans-serif`;
         ctx.textBaseline = "middle";
-        const priority = heads.slice().sort((a, b) => {
-            if (a.s.name === selected) return -1;
-            if (b.s.name === selected) return 1;
-            return Math.abs(b.v) - Math.abs(a.v);
+
+        const pool = selected ? heads.filter((h) => h.s.name === selected) : heads.slice();
+        pool.sort((a, b) => Math.abs(b.v) - Math.abs(a.v));
+        const chosen = pool.slice(0, capacity).map((h) => {
+            const text = `${h.s.name} ${money(h.v, true)}`;
+            return { h, text, w: ctx.measureText(text).width + 10, y: h.y - lh / 2 };
         });
-        const placed = [];
-        let count = 0;
-        priority.forEach((h) => {
-            if (count >= limit) {
-                return;
+        chosen.sort((a, b) => a.h.y - b.h.y);
+
+        // Push overlapping tags down, then back up from the bottom edge.
+        for (let i = 0; i < chosen.length; i += 1) {
+            const minY = i === 0 ? top : chosen[i - 1].y + lh + gap;
+            chosen[i].y = Math.max(chosen[i].y, minY);
+        }
+        for (let i = chosen.length - 1; i >= 0; i -= 1) {
+            const maxY = i === chosen.length - 1 ? bottom - lh : chosen[i + 1].y - lh - gap;
+            chosen[i].y = Math.min(chosen[i].y, maxY);
+        }
+
+        // Tags go right of the dots when there's room, otherwise left.
+        const maxW = Math.max(...chosen.map((c) => c.w));
+        const onRight = heads[0].x + 14 + maxW <= width - 2;
+        chosen.forEach((c) => {
+            const { h } = c;
+            const boxX = onRight ? h.x + 14 : h.x - 14 - c.w;
+            const midY = c.y + lh / 2;
+            if (Math.abs(midY - h.y) > 2) {
+                ctx.strokeStyle = hexToRgba(h.s.color, 0.55);
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(h.x + (onRight ? 5 : -5), h.y);
+                ctx.lineTo(onRight ? boxX : boxX + c.w, midY);
+                ctx.stroke();
             }
-            if (selected && h.s.name !== selected) {
-                return;
-            }
-            const text = narrow ? h.s.name : `${h.s.name} ${money(h.v, true)}`;
-            const w = ctx.measureText(text).width + 10;
-            const lh = fontSize + 6;
-            let x = h.x + 9;
-            if (x + w > width - 2) {
-                x = h.x - 9 - w;
-            }
-            const box = { x, y: h.y - lh / 2, w, h: lh };
-            const hit = placed.some((b) => box.x < b.x + b.w && box.x + box.w > b.x && box.y < b.y + b.h && box.y + box.h > b.y);
-            if (hit) {
-                return;
-            }
-            placed.push(box);
-            count += 1;
-            ctx.fillStyle = "rgba(10, 6, 30, 0.78)";
-            roundRect(box.x, box.y, box.w, box.h, 5);
+            ctx.fillStyle = "rgba(10, 6, 30, 0.85)";
+            roundRect(boxX, c.y, c.w, lh, 5);
             ctx.fill();
             ctx.strokeStyle = hexToRgba(h.s.color, 0.7);
             ctx.lineWidth = 1;
             ctx.stroke();
             ctx.fillStyle = h.s.color;
             ctx.textAlign = "left";
-            ctx.fillText(text, box.x + 5, h.y + 0.5);
+            ctx.fillText(c.text, boxX + 5, midY + 0.5);
         });
     }
 
@@ -647,6 +663,11 @@
     slider.addEventListener("input", () => moveTo(Number(slider.value)));
     playButton.addEventListener("click", () => setPlaying(!playing));
     clearButton.addEventListener("click", () => toggleSelect(selected));
+
+    // Canvas text needs the web fonts; redraw once they've loaded.
+    if (document.fonts && document.fonts.ready) {
+        document.fonts.ready.then(() => draw());
+    }
 
     if ("ResizeObserver" in window) {
         new ResizeObserver(() => resize()).observe(shell);

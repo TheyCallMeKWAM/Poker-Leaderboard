@@ -898,7 +898,7 @@
                         maxRotation: showAllLabels ? 50 : (compact ? 45 : 0),
                         minRotation: showAllLabels ? 50 : 0,
                         font: {
-                            size: compact ? 10 : 12
+                            size: compact ? 11 : 12
                         }
                     },
                     grid: {
@@ -913,7 +913,7 @@
                         color: "#a79fd6",
                         stepSize: yStepSize,
                         font: {
-                            size: compact ? 10 : 12
+                            size: compact ? 11 : 12
                         },
                         callback: (value) => {
                             if (compact) {
@@ -928,6 +928,11 @@
                 }
             }
         };
+    }
+
+    if (window.Chart) {
+        window.Chart.defaults.font.family = '"Chakra Petch", "Space Grotesk", sans-serif';
+        window.Chart.defaults.font.size = 12;
     }
 
     const years = getYears();

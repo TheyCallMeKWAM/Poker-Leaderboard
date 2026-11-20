@@ -14,6 +14,8 @@
     --green: #39ff88;
     --red: #ff4d6d;
     --heading: "Orbitron", "Space Grotesk", sans-serif;
+    /* Numbers use Chakra Petch: still techy, but its digits are easy to read. */
+    --num: "Chakra Petch", "Space Grotesk", sans-serif;
     --body: "Space Grotesk", "Segoe UI", sans-serif;
 }
 
@@ -76,8 +78,9 @@ body {
 
 .site-header {
     position: relative;
-    padding: 3.2rem 1.25rem 0;
-    min-height: 420px;
+    padding: 2.4rem 1.25rem 3.6rem;
+    min-height: 280px;
+    justify-content: center;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -88,9 +91,9 @@ body {
     content: "";
     position: absolute;
     left: 50%;
-    bottom: 40px;
+    bottom: 0;
     width: 140%;
-    height: 260px;
+    height: 240px;
     transform: translateX(-50%);
     background: radial-gradient(ellipse at 50% 100%, rgba(255, 43, 214, 0.45), rgba(178, 107, 255, 0.15) 45%, transparent 70%);
     pointer-events: none;
@@ -98,6 +101,8 @@ body {
 
 .header-inner {
     position: relative;
+    /* Soft dark halo so the sign reads cleanly over the lit windows. */
+    background: radial-gradient(ellipse 55% 60% at 50% 50%, rgba(7, 5, 26, 0.75), transparent 75%);
     z-index: 2;
     width: 100%;
     max-width: 1100px;
@@ -106,11 +111,12 @@ body {
 }
 
 .skyline {
+    /* The city fills the whole header, behind the title. */
     position: absolute;
     left: 0;
     right: 0;
     bottom: 0;
-    height: 230px;
+    height: 100%;
     z-index: 1;
     pointer-events: none;
 }
@@ -186,6 +192,11 @@ body {
 }
 
 .subtitle {
+    display: inline-block;
+    padding: 0.35rem 1rem;
+    border-radius: 999px;
+    background: rgba(7, 5, 26, 0.8);
+    border: 1px solid rgba(178, 107, 255, 0.35);
     font-family: var(--heading);
     margin: 1rem 0 0;
     color: var(--muted);
@@ -200,7 +211,7 @@ main {
     position: relative;
     z-index: 3;
     max-width: 1100px;
-    margin: -1.5rem auto 2rem;
+    margin: 0 auto 2rem;
     padding: 0 1.25rem 2rem;
     display: grid;
     gap: 1.75rem;
@@ -910,12 +921,8 @@ section + section {
 
 @media (max-width: 700px) {
     .site-header {
-        padding-top: 2.4rem;
-        min-height: 360px;
-    }
-
-    .skyline {
-        height: 170px;
+        padding: 1.8rem 1rem 2.6rem;
+        min-height: 210px;
     }
 
     main {
@@ -1061,4 +1068,44 @@ section + section {
         animation: none !important;
         transition: none !important;
     }
+}
+
+/* ---------- Numbers ---------- */
+
+.money,
+.race-total,
+.race-rank,
+.race-date,
+.race-months span,
+.rank-badge,
+.year-button,
+.date-picker select,
+#hero-year {
+    font-family: var(--num);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+}
+
+.money {
+    font-size: 1rem;
+}
+
+.race-total {
+    font-size: 0.9rem;
+}
+
+.race-rank {
+    font-size: 0.8rem;
+}
+
+.race-date {
+    font-size: 1.05rem;
+}
+
+.rank-badge {
+    font-size: 0.95rem;
+}
+
+.year-button {
+    font-size: 0.95rem;
 }
