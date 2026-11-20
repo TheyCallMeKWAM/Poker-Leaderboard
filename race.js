@@ -15,7 +15,6 @@
     const monthsOut = document.getElementById("race-months");
     const list = document.getElementById("race-list");
     const clearButton = document.getElementById("race-clear");
-    const section = document.getElementById("all-players-graph-section");
     if (!canvas || !shell) {
         return;
     }
@@ -39,7 +38,8 @@
     let yStep = 50;
     let rafId = null;
     let lastTs = null;
-    let hasAutoplayed = false;
+    let labels = [];
+    let multiYear = false;
     let heads = [];
 
     function money(value, signed) {
@@ -53,9 +53,31 @@
 
     function dateLabel(dateStr, withWeekday) {
         const d = new Date(`${dateStr}T12:00:00`);
-        return d.toLocaleDateString("en-US", withWeekday
+        const opts = withWeekday
             ? { weekday: "short", month: "short", day: "numeric" }
-            : { month: "short", day: "numeric" });
+            : { month: "short", day: "numeric" };
+        if (multiYear) {
+            opts.year = withWeekday ? "numeric" : "2-digit";
+        }
+        return d.toLocaleDateString("en-US", opts);
+    }
+
+    // Label for night i: a custom label if one was given (like "2024 season"), else its date.
+    function nightLabel(i, withWeekday) {
+        return labels[i] || dateLabel(dates[i], withWeekday);
+    }
+
+    // Axis ticks: months within one season, years across a career.
+    function tickKey(d) {
+        return multiYear ? d.slice(0, 4) : d.slice(0, 7);
+    }
+
+    function tickLabel(d, short) {
+        if (multiYear) {
+            return short ? `'${d.slice(2, 4)}` : d.slice(0, 4);
+        }
+        const month = new Date(`${d}T12:00:00`).toLocaleDateString("en-US", { month: "short" });
+        return short ? month.charAt(0) : month;
     }
 
     function isNarrow() {
@@ -179,8 +201,8 @@
         let lastMonth = null;
         let lastX = -Infinity;
         dates.forEach((d, i) => {
-            const month = d.slice(0, 7);
-            if (month === lastMonth) {
+            const month = tickKey(d);
+            if (labels[i] || month === lastMonth) {
                 return;
             }
             lastMonth = month;
@@ -194,8 +216,7 @@
             ctx.moveTo(x, p.top);
             ctx.lineTo(x, height - p.bottom);
             ctx.stroke();
-            const label = new Date(`${d}T12:00:00`).toLocaleDateString("en-US", { month: "short" });
-            ctx.fillText(label, x + 3, height - p.bottom + 16);
+            ctx.fillText(tickLabel(d, false), x + 3, height - p.bottom + 16);
         });
     }
 
@@ -215,7 +236,7 @@
 
         // Date pill riding the top of the scanline.
         const idx = Math.round(t);
-        const text = dates[idx] ? dateLabel(dates[idx]) : "";
+        const text = dates[idx] ? nightLabel(idx) : "";
         ctx.font = `700 ${isNarrow() ? 10 : 11}px "Orbitron", sans-serif`;
         const tw = ctx.measureText(text).width + 16;
         let px = x - tw / 2;
@@ -389,9 +410,11 @@
             nightOut.textContent = "";
             return;
         }
-        dateOut.textContent = dateLabel(dates[idx], true);
-        nightOut.textContent = `Night ${idx + 1} of ${dates.length}`;
-        slider.setAttribute("aria-valuetext", `${dateLabel(dates[idx])}, night ${idx + 1} of ${dates.length}`);
+        const nights = dates.length - labels.filter(Boolean).length;
+        const nightNo = idx + 1 - labels.slice(0, idx + 1).filter(Boolean).length;
+        dateOut.textContent = nightLabel(idx, true);
+        nightOut.textContent = labels[idx] ? "Season totals" : `Night ${nightNo} of ${nights}`;
+        slider.setAttribute("aria-valuetext", `${nightLabel(idx)}, ${nightOut.textContent}`);
     }
 
     function buildList() {
@@ -514,8 +537,9 @@
         const dt = lastTs === null ? 16 : Math.min(64, ts - lastTs);
         lastTs = ts;
         if (playing) {
-            // About 14 seconds for a full season, never slower than 2 nights a second.
-            const speed = Math.max(2, (dates.length - 1) / 14);
+            // A relaxed pace: about a night a second, so a season takes ~35 seconds.
+            // Long careers speed up a little so they finish in under a minute and a half.
+            const speed = Math.max(1.1, (dates.length - 1) / 80);
             target = Math.min(dates.length - 1, target + (speed * dt) / 1000);
             t = target;
             if (target >= dates.length - 1) {
@@ -551,8 +575,8 @@
         let lastMonth = null;
         let lastPct = -100;
         dates.forEach((d, i) => {
-            const month = d.slice(0, 7);
-            if (month === lastMonth) {
+            const month = tickKey(d);
+            if (labels[i] || month === lastMonth) {
                 return;
             }
             lastMonth = month;
@@ -563,7 +587,7 @@
             lastPct = pct;
             const span = document.createElement("span");
             span.style.left = `${pct}%`;
-            span.textContent = new Date(`${d}T12:00:00`).toLocaleDateString("en-US", { month: "short" }).charAt(0);
+            span.textContent = tickLabel(d, true);
             span.title = month;
             monthsOut.appendChild(span);
         });
@@ -630,26 +654,11 @@
         window.addEventListener("resize", resize);
     }
 
-    // Play the season once, the first time the graph scrolls into view.
-    if ("IntersectionObserver" in window && !reduceMotion) {
-        const io = new IntersectionObserver((entries) => {
-            entries.forEach((entry) => {
-                if (entry.isIntersecting && !hasAutoplayed && dates.length > 1) {
-                    hasAutoplayed = true;
-                    target = 0;
-                    t = 0;
-                    slider.value = "0";
-                    setPlaying(true);
-                    io.disconnect();
-                }
-            });
-        }, { threshold: 0.45 });
-        io.observe(section);
-    }
-
     window.NeonRace = {
         render(config) {
             dates = config.dates || [];
+            labels = config.labels || [];
+            multiYear = new Set(dates.filter((d, i) => !labels[i]).map((d) => d.slice(0, 4))).size > 1;
             series = (config.series || []).map((s) => ({
                 ...s,
                 first: s.values.findIndex((v) => v !== null)

@@ -194,47 +194,6 @@ body {
     text-transform: uppercase;
 }
 
-.hero-stats {
-    display: flex;
-    justify-content: center;
-    flex-wrap: wrap;
-    gap: 0.7rem;
-    margin: 1.6rem auto 0;
-}
-
-.hero-stat {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    min-width: 96px;
-    padding: 0.55rem 1rem;
-    border-radius: 12px;
-    background: rgba(10, 6, 30, 0.7);
-    border: 1px solid rgba(34, 232, 255, 0.45);
-    box-shadow: 0 0 14px rgba(34, 232, 255, 0.18), inset 0 0 12px rgba(34, 232, 255, 0.08);
-    backdrop-filter: blur(4px);
-}
-
-.hero-stat.is-accent {
-    border-color: rgba(255, 43, 214, 0.6);
-    box-shadow: 0 0 14px rgba(255, 43, 214, 0.25), inset 0 0 12px rgba(255, 43, 214, 0.1);
-}
-
-.hero-stat-label {
-    font-size: 0.62rem;
-    letter-spacing: 0.14rem;
-    text-transform: uppercase;
-    color: var(--muted);
-}
-
-.hero-stat-value {
-    font-family: var(--heading);
-    font-weight: 700;
-    font-size: 1.05rem;
-    margin-top: 0.15rem;
-    color: #fff;
-}
-
 /* ---------- Layout + panels ---------- */
 
 main {
@@ -957,15 +916,6 @@ section + section {
 
     .skyline {
         height: 170px;
-    }
-
-    .hero-stat {
-        min-width: 0;
-        padding: 0.45rem 0.75rem;
-    }
-
-    .hero-stat-value {
-        font-size: 0.9rem;
     }
 
     main {
