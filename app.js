@@ -17,7 +17,9 @@
     const dateResultsSection = document.getElementById("date-results");
     const summaryNote = document.getElementById("summary-note");
     const heroYear = document.getElementById("hero-year");
-    const heroStats = document.getElementById("hero-stats");
+    const funStatsNote = document.getElementById("fun-stats-note");
+    // The "All years" tab: every season combined into one career.
+    const ALL_YEARS = "all";
 
     let players = [];
     let games = [];
@@ -25,6 +27,9 @@
     let gamesByNameDate = new Map();
     let gamesByDate = new Map();
     let activeYear = null;
+    // All-years view only: season totals from years without per-night results.
+    let careerSummary = new Map();
+    let summaryYears = [];
 
     const playerCharts = new Map();
 
@@ -42,7 +47,11 @@
 
     function formatDateLabel(dateStr) {
         const date = new Date(`${dateStr}T12:00:00`);
-        return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+        const options = { month: "short", day: "numeric" };
+        if (activeYear === ALL_YEARS) {
+            options.year = "numeric";
+        }
+        return date.toLocaleDateString("en-US", options);
     }
 
     function getYears() {
@@ -62,6 +71,13 @@
             button.addEventListener("click", () => setActiveYear(year));
             yearButtons.appendChild(button);
         });
+        const allButton = document.createElement("button");
+        allButton.type = "button";
+        allButton.className = "year-button year-button-all";
+        allButton.textContent = "All years";
+        allButton.dataset.year = ALL_YEARS;
+        allButton.addEventListener("click", () => setActiveYear(ALL_YEARS));
+        yearButtons.appendChild(allButton);
     }
 
     function setActiveYear(year) {
@@ -69,8 +85,9 @@
             return;
         }
         activeYear = year;
-        yearLabel.textContent = year;
-        heroYear.textContent = `${year} season`;
+        const isAll = year === ALL_YEARS;
+        yearLabel.textContent = isAll ? "every year combined" : year;
+        heroYear.textContent = isAll ? "All years" : `${year} season`;
 
         Array.from(yearButtons.children).forEach((button) => {
             const isActive = button.dataset.year === year;
@@ -84,17 +101,16 @@
         summaryNote.hidden = !isSummaryYear;
         if (isSummaryYear) {
             renderSummaryYear(summaryData[year]);
-            const summarySorted = summaryData[year].slice().sort((a, b) => b.total - a.total);
-            renderHeroStats([
-                { label: "Players", value: summarySorted.length },
-                { label: "Season champ", value: summarySorted[0] ? summarySorted[0].name : "—", accent: true }
-            ]);
             return;
         }
 
-        const yearGames = (data[year] || []).slice().sort((a, b) => a.date.localeCompare(b.date));
+        const sourceGames = isAll ? Object.values(data).flat() : (data[year] || []);
+        const yearGames = sourceGames.slice().sort((a, b) => a.date.localeCompare(b.date));
         resetData();
         yearGames.forEach((game) => addGame(game.date, game.results));
+        if (isAll) {
+            addCareerSummaries();
+        }
         activeDates = yearGames.map((game) => game.date);
         gamesByNameDate = new Map();
         gamesByDate = new Map();
@@ -114,26 +130,46 @@
         }
         renderDateResults(dateSelect.value || null);
         renderFunStats();
-        updateEmptyState(yearGames.length === 0);
+        updateEmptyState(yearGames.length === 0 && players.length === 0);
 
-        const leader = [...players].sort((a, b) => b.total - a.total)[0];
-        renderHeroStats([
-            { label: "Nights", value: activeDates.length },
-            { label: "Players", value: players.length },
-            { label: "Leader", value: leader ? `${leader.name} ${formatCurrency(Math.round(leader.total))}` : "—", accent: true }
-        ]);
+        if (isAll) {
+            const nightYears = Object.keys(data).sort();
+            const nightRange = nightYears.length > 1 ? `${nightYears[0]}–${nightYears[nightYears.length - 1]}` : nightYears[0];
+            funStatsNote.textContent = summaryYears.length
+                ? `All-time highlights from every night on record (${nightRange}). ${summaryYears.join(", ")} only has season totals, so it counts toward the leaderboard and the race but not these.`
+                : "All-time highlights from every night on record.";
+        } else {
+            funStatsNote.textContent = "Highlights for this season.";
+        }
     }
 
-    function renderHeroStats(stats) {
-        heroStats.innerHTML = "";
-        stats.forEach((stat) => {
-            const chip = document.createElement("div");
-            chip.className = stat.accent ? "hero-stat is-accent" : "hero-stat";
-            chip.innerHTML = `<span class="hero-stat-label"></span><span class="hero-stat-value"></span>`;
-            chip.querySelector(".hero-stat-label").textContent = stat.label;
-            chip.querySelector(".hero-stat-value").textContent = stat.value;
-            heroStats.appendChild(chip);
+    // Adds season-total-only years (like 2024) into the career leaderboard.
+    function addCareerSummaries() {
+        careerSummary = new Map();
+        summaryYears = Object.keys(summaryData).filter((y) => !data[y]).sort();
+        summaryYears.forEach((y) => {
+            summaryData[y].forEach(({ name, total, games: played }) => {
+                let player = players.find((p) => p.name === name);
+                if (!player) {
+                    player = { name, id: slugify(name), total: 0, games: 0, color: getPaletteColor(players.length) };
+                    players.push(player);
+                }
+                player.total += total;
+                player.games += played;
+                if (!careerSummary.has(name)) {
+                    careerSummary.set(name, []);
+                }
+                careerSummary.get(name).push({ year: y, total, games: played });
+            });
         });
+    }
+
+    // What a player carried in from season-total-only years.
+    function careerStart(name) {
+        if (activeYear !== ALL_YEARS || !careerSummary.has(name)) {
+            return null;
+        }
+        return careerSummary.get(name).reduce((sum, entry) => sum + entry.total, 0);
     }
 
     function rankCell(index) {
@@ -171,6 +207,8 @@
     function resetData() {
         players = [];
         games = [];
+        careerSummary = new Map();
+        summaryYears = [];
         playerCharts.forEach((chart) => chart.destroy());
         playerCharts.clear();
     }
@@ -219,7 +257,6 @@
         const biggestNight = getBiggestNight();
         const comeback = getBiggestComeback();
         const winRate = getBestWinRate();
-        const ironMan = getMostNightsPlayed();
         const wildest = getWildestSwings();
 
         const items = [
@@ -262,7 +299,7 @@
             },
             {
                 icon: "🚀",
-                title: "Comeback of the year",
+                title: activeYear === ALL_YEARS ? "Biggest comeback" : "Comeback of the year",
                 value: comeback ? `+${formatCurrency(comeback.climb)} · ${comeback.name}` : "N/A",
                 detail: comeback
                     ? `${formatCurrency(comeback.low)} on ${formatDateLabel(comeback.lowDate)} → ${formatCurrency(comeback.high)} on ${formatDateLabel(comeback.highDate)}`
@@ -281,14 +318,6 @@
                 detail: winRate ? `Up ${winRate.wins} of ${winRate.played} nights · ${winRate.minGames}+ to qualify` : ""
             },
             {
-                icon: "🪑",
-                title: "Most nights played",
-                value: ironMan ? `${ironMan.games} of ${activeDates.length} · ${ironMan.names.join(", ")}` : "N/A",
-                detail: ironMan
-                    ? (ironMan.games === activeDates.length ? "Perfect attendance" : "The regulars")
-                    : ""
-            },
-            {
                 icon: "🎢",
                 title: "Wildest swings",
                 value: wildest ? `±${formatCurrency(Math.round(wildest.deviation))} · ${wildest.name}` : "N/A",
@@ -298,7 +327,7 @@
                 icon: "🧊",
                 title: "Most consistent player",
                 value: mostConsistent ? `±${formatCurrency(Math.round(mostConsistent.deviation))} · ${mostConsistent.name}` : "N/A",
-                detail: mostConsistent ? "Smallest swings (3+ nights)" : ""
+                detail: mostConsistent ? `Smallest swings (${MIN_GAMES_FOR_RATES}+ nights)` : ""
             }
         ];
 
@@ -402,10 +431,12 @@
         };
     }
 
-    // Share of nights finished up. Needs a third of the season's nights
-    // (at least 3) so one lucky visit doesn't take it.
+    // Win rate and most consistent only count players with more than 5 nights.
+    const MIN_GAMES_FOR_RATES = 6;
+
+    // Share of nights finished up, for players with more than 5 nights.
     function getBestWinRate() {
-        const minGames = Math.max(3, Math.ceil(activeDates.length / 3));
+        const minGames = MIN_GAMES_FOR_RATES;
         let best = null;
         players.forEach((player) => {
             const playerGames = games.filter((game) => game.name === player.name);
@@ -421,20 +452,11 @@
         return best;
     }
 
-    function getMostNightsPlayed() {
-        if (players.length === 0) {
-            return null;
-        }
-        const most = Math.max(...players.map((player) => player.games));
-        const names = players.filter((player) => player.games === most).map((player) => player.name);
-        return { games: most, names };
-    }
-
-    function getDeviations() {
+    function getDeviations(minGames = 3) {
         return players
             .map((player) => {
                 const playerGames = games.filter((game) => game.name === player.name);
-                if (playerGames.length < 3) {
+                if (playerGames.length < minGames) {
                     return null;
                 }
                 const mean = playerGames.reduce((sum, game) => sum + game.result, 0) / playerGames.length;
@@ -571,7 +593,7 @@
     }
 
     function getMostConsistentPlayer() {
-        return getDeviations().reduce((best, entry) => (!best || entry.deviation < best.deviation ? entry : best), null);
+        return getDeviations(MIN_GAMES_FOR_RATES).reduce((best, entry) => (!best || entry.deviation < best.deviation ? entry : best), null);
     }
 
     function buildRange(start, end) {
@@ -642,7 +664,15 @@
             return `<li><span>${formatDateLabel(date)}</span><span class="money ${tone}">${formatCurrency(result)}</span></li>`;
         }).filter(Boolean);
 
-        dropdownCell.innerHTML = `<ul class="night-list">${entries.join("")}</ul>`;
+        if (activeYear === ALL_YEARS && careerSummary.has(playerName)) {
+            careerSummary.get(playerName).forEach((entry) => {
+                const tone = entry.total > 0 ? "is-up" : entry.total < 0 ? "is-down" : "is-even";
+                entries.unshift(`<li><span>${entry.year} season (${entry.games} games)</span><span class="money ${tone}">${formatCurrency(entry.total)}</span></li>`);
+            });
+        }
+        dropdownCell.innerHTML = entries.length
+            ? `<ul class="night-list">${entries.join("")}</ul>`
+            : "<p>No nightly results for this player.</p>";
         // Show the row before drawing so the chart can measure its width.
         // Clearing the inline style lets the stylesheet pick the display
         // (table-row on desktop, block on phones).
@@ -705,8 +735,9 @@
             playerCharts.get(canvasId).destroy();
         }
 
-        let cumulativeTotal = 0;
-        let lastKnownTotal = null;
+        const start = careerStart(playerName);
+        let cumulativeTotal = start || 0;
+        let lastKnownTotal = start;
         const dataPoints = activeDates.map((date) => {
             const key = `${date}|${playerName}`;
             if (gamesByNameDate.has(key)) {
@@ -745,16 +776,26 @@
     // Hands the season to the neon race graph (race.js): every player's
     // running total per night, carried forward on nights they sat out.
     function plotAllPlayersGraph() {
-        if (activeDates.length === 0 || !window.NeonRace) {
+        if ((activeDates.length === 0 && careerSummary.size === 0) || !window.NeonRace) {
             allPlayersSection.hidden = true;
             return;
         }
 
         allPlayersSection.hidden = false;
+        // In the all-years view, careers start from the season-total-only years
+        // (one "2024 season" point), then go night by night.
+        const leadIn = activeYear === ALL_YEARS && summaryYears.length > 0;
+        const dates = leadIn ? [`${summaryYears[summaryYears.length - 1]}-12-31`, ...activeDates] : activeDates;
+        const labels = leadIn ? [`${summaryYears.join(" + ")} season${summaryYears.length > 1 ? "s" : ""}`] : [];
         const series = players.map((player) => {
             let running = null;
             const values = [];
             const played = [];
+            if (leadIn) {
+                running = careerStart(player.name);
+                values.push(running === null ? null : roundCents(running));
+                played.push(false);
+            }
             activeDates.forEach((date) => {
                 const key = `${date}|${player.name}`;
                 const didPlay = gamesByNameDate.has(key);
@@ -767,7 +808,7 @@
             return { name: player.name, color: player.color, values, played };
         });
 
-        window.NeonRace.render({ dates: activeDates, series });
+        window.NeonRace.render({ dates, labels, series });
     }
 
     function isNarrowScreen() {
