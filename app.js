@@ -178,50 +178,237 @@
         const streaks = getLongestStreaks();
         const bestMonth = getBestMonthByPlayer();
         const mostConsistent = getMostConsistentPlayer();
+        const hotHand = getHotHand(4);
+        const biggestNight = getBiggestNight();
+        const comeback = getBiggestComeback();
+        const winRate = getBestWinRate();
+        const ironMan = getMostNightsPlayed();
+        const wildest = getWildestSwings();
 
         const items = [
             {
+                icon: "🔥",
+                title: "Hot right now",
+                value: hotHand ? `${formatCurrency(hotHand.total)} · ${hotHand.name}` : "N/A",
+                detail: hotHand ? `Last ${hotHand.nights} nights · ${hotHand.range}` : "",
+                featured: true
+            },
+            {
+                icon: "💰",
                 title: "Biggest single night win",
                 value: biggestWin ? `${formatCurrency(biggestWin.result)} · ${biggestWin.name}` : "N/A",
                 detail: biggestWin ? formatDateLabel(biggestWin.date) : ""
             },
             {
+                icon: "💸",
                 title: "Biggest single night loss",
                 value: biggestLoss ? `${formatCurrency(biggestLoss.result)} · ${biggestLoss.name}` : "N/A",
                 detail: biggestLoss ? formatDateLabel(biggestLoss.date) : ""
             },
             {
+                icon: "🎰",
+                title: "Biggest night ever",
+                value: biggestNight ? `${formatCurrency(Math.round(biggestNight.pot))} changed hands` : "N/A",
+                detail: biggestNight ? `${formatDateLabel(biggestNight.date)} · ${biggestNight.players} players` : ""
+            },
+            {
+                icon: "📈",
                 title: "Longest win streak",
                 value: streaks.win.length > 0 ? `${streaks.win.length} sessions · ${streaks.win.name}` : "N/A",
                 detail: streaks.win.range
             },
             {
+                icon: "🥶",
                 title: "Longest loss streak",
                 value: streaks.loss.length > 0 ? `${streaks.loss.length} sessions · ${streaks.loss.name}` : "N/A",
                 detail: streaks.loss.range
             },
             {
+                icon: "🚀",
+                title: "Comeback of the year",
+                value: comeback ? `+${formatCurrency(comeback.climb)} · ${comeback.name}` : "N/A",
+                detail: comeback
+                    ? `${formatCurrency(comeback.low)} on ${formatDateLabel(comeback.lowDate)} → ${formatCurrency(comeback.high)} on ${formatDateLabel(comeback.highDate)}`
+                    : "Nobody has climbed out of a hole yet"
+            },
+            {
+                icon: "🏆",
                 title: "Best month",
                 value: bestMonth ? `${formatCurrency(bestMonth.total)} · ${bestMonth.name}` : "N/A",
                 detail: bestMonth ? bestMonth.label : ""
             },
             {
+                icon: "🎯",
+                title: "Best win rate",
+                value: winRate ? `${Math.round(winRate.rate * 100)}% · ${winRate.name}` : "N/A",
+                detail: winRate ? `Up ${winRate.wins} of ${winRate.played} nights · ${winRate.minGames}+ to qualify` : ""
+            },
+            {
+                icon: "🪑",
+                title: "Most nights played",
+                value: ironMan ? `${ironMan.games} of ${activeDates.length} · ${ironMan.names.join(", ")}` : "N/A",
+                detail: ironMan
+                    ? (ironMan.games === activeDates.length ? "Perfect attendance" : "The regulars")
+                    : ""
+            },
+            {
+                icon: "🎢",
+                title: "Wildest swings",
+                value: wildest ? `±${formatCurrency(Math.round(wildest.deviation))} · ${wildest.name}` : "N/A",
+                detail: wildest ? "Typical night-to-night swing" : ""
+            },
+            {
+                icon: "🧊",
                 title: "Most consistent player",
-                value: mostConsistent ? `${formatCurrency(mostConsistent.deviation)} · ${mostConsistent.name}` : "N/A",
-                detail: mostConsistent ? "Lowest standard deviation" : ""
+                value: mostConsistent ? `±${formatCurrency(Math.round(mostConsistent.deviation))} · ${mostConsistent.name}` : "N/A",
+                detail: mostConsistent ? "Smallest swings (3+ nights)" : ""
             }
         ];
 
         items.forEach((item) => {
             const card = document.createElement("div");
-            card.className = "stat-item";
+            card.className = item.featured ? "stat-item stat-item-featured" : "stat-item";
             card.innerHTML = `
-                <h3>${item.title}</h3>
-                <p>${item.value}</p>
-                ${item.detail ? `<p>${item.detail}</p>` : ""}
+                <h3><span class="stat-icon" aria-hidden="true">${item.icon}</span>${item.title}</h3>
+                <p class="stat-item-value">${item.value}</p>
+                ${item.detail ? `<p class="stat-item-detail">${item.detail}</p>` : ""}
             `;
             funStatsBody.appendChild(card);
         });
+    }
+
+    // Round to cents so decimal buy-ins don't leave float noise.
+    function roundCents(value) {
+        return Math.round(value * 100) / 100;
+    }
+
+    function getPlayerGames(name) {
+        return games
+            .filter((game) => game.name === name)
+            .sort((a, b) => a.date.localeCompare(b.date));
+    }
+
+    // Best combined result over the most recent `count` nights of the season.
+    function getHotHand(count) {
+        const recentDates = activeDates.slice(-count);
+        if (recentDates.length === 0) {
+            return null;
+        }
+        const recentSet = new Set(recentDates);
+        const totals = new Map();
+        games.forEach((game) => {
+            if (recentSet.has(game.date)) {
+                totals.set(game.name, (totals.get(game.name) || 0) + game.result);
+            }
+        });
+        let best = null;
+        totals.forEach((total, name) => {
+            if (!best || total > best.total) {
+                best = { name, total: roundCents(total) };
+            }
+        });
+        if (!best) {
+            return null;
+        }
+        return {
+            ...best,
+            nights: recentDates.length,
+            range: buildRange(recentDates[0], recentDates[recentDates.length - 1])
+        };
+    }
+
+    // The night with the most money won. Uses the winners' side only, so a
+    // night that doesn't quite sum to zero still counts.
+    function getBiggestNight() {
+        let best = null;
+        gamesByDate.forEach((results, date) => {
+            const pot = roundCents(results.reduce((sum, r) => sum + Math.max(0, r.result), 0));
+            if (!best || pot > best.pot) {
+                best = { date, pot, players: results.length };
+            }
+        });
+        return best;
+    }
+
+    // Deepest hole a player climbed out of: their running total fell below
+    // zero and later got back above it. Reports the low and the best total after.
+    function getBiggestComeback() {
+        let best = null;
+        players.forEach((player) => {
+            let running = 0;
+            let low = 0;
+            let lowDate = null;
+            let candidate = null;
+            getPlayerGames(player.name).forEach((game) => {
+                running += game.result;
+                if (running < low) {
+                    low = running;
+                    lowDate = game.date;
+                    candidate = null;
+                }
+                if (lowDate && running > 0 && (!candidate || running > candidate.high)) {
+                    candidate = { name: player.name, low, lowDate, high: running, highDate: game.date };
+                }
+            });
+            if (candidate && (!best || candidate.low < best.low)) {
+                best = candidate;
+            }
+        });
+        if (!best) {
+            return null;
+        }
+        return {
+            ...best,
+            low: Math.round(best.low),
+            high: Math.round(best.high),
+            climb: Math.round(best.high - best.low)
+        };
+    }
+
+    // Share of nights finished up. Needs a third of the season's nights
+    // (at least 3) so one lucky visit doesn't take it.
+    function getBestWinRate() {
+        const minGames = Math.max(3, Math.ceil(activeDates.length / 3));
+        let best = null;
+        players.forEach((player) => {
+            const playerGames = games.filter((game) => game.name === player.name);
+            if (playerGames.length < minGames) {
+                return;
+            }
+            const wins = playerGames.filter((game) => game.result > 0).length;
+            const rate = wins / playerGames.length;
+            if (!best || rate > best.rate || (rate === best.rate && playerGames.length > best.played)) {
+                best = { name: player.name, rate, wins, played: playerGames.length, minGames };
+            }
+        });
+        return best;
+    }
+
+    function getMostNightsPlayed() {
+        if (players.length === 0) {
+            return null;
+        }
+        const most = Math.max(...players.map((player) => player.games));
+        const names = players.filter((player) => player.games === most).map((player) => player.name);
+        return { games: most, names };
+    }
+
+    function getDeviations() {
+        return players
+            .map((player) => {
+                const playerGames = games.filter((game) => game.name === player.name);
+                if (playerGames.length < 3) {
+                    return null;
+                }
+                const mean = playerGames.reduce((sum, game) => sum + game.result, 0) / playerGames.length;
+                const variance = playerGames.reduce((sum, game) => sum + (game.result - mean) ** 2, 0) / playerGames.length;
+                return { name: player.name, deviation: Math.sqrt(variance) };
+            })
+            .filter(Boolean);
+    }
+
+    function getWildestSwings() {
+        return getDeviations().reduce((best, entry) => (!best || entry.deviation > best.deviation ? entry : best), null);
     }
 
     function getLongestStreaks() {
@@ -347,22 +534,7 @@
     }
 
     function getMostConsistentPlayer() {
-        if (players.length === 0) {
-            return null;
-        }
-        return players.reduce((best, player) => {
-            const playerGames = games.filter((game) => game.name === player.name);
-            if (playerGames.length < 2) {
-                return best;
-            }
-            const mean = playerGames.reduce((sum, game) => sum + game.result, 0) / playerGames.length;
-            const variance = playerGames.reduce((sum, game) => sum + (game.result - mean) ** 2, 0) / playerGames.length;
-            const deviation = Math.sqrt(variance);
-            if (!best || deviation < best.deviation) {
-                return { name: player.name, deviation };
-            }
-            return best;
-        }, null);
+        return getDeviations().reduce((best, entry) => (!best || entry.deviation < best.deviation ? entry : best), null);
     }
 
     function buildRange(start, end) {
