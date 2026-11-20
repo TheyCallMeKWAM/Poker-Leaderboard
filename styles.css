@@ -813,6 +813,10 @@ section + section {
     opacity: 0.35;
 }
 
+.race-row.is-idle {
+    opacity: 0.55;
+}
+
 .race-row.is-dim {
     opacity: 0.4;
 }
